@@ -174,45 +174,15 @@
         Watch This Video Given Below to Know How To Verify
       </h2>
 
-      <!-- Video Mock Player -->
-      <div class="mt-4 relative rounded-xl overflow-hidden bg-slate-950 border border-slate-700/60 aspect-video flex flex-col justify-between group shadow-inner">
-        <!-- Video Screen / Thumbnail Backdrop -->
-        <div class="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-900/60 to-slate-950/80 flex items-center justify-center">
-          <!-- Play Button Overlay -->
-          <button 
-            id="playButton"
-            onclick="togglePlayMock()"
-            class="w-14 h-14 rounded-full bg-portal-accent/90 hover:bg-portal-accent text-white flex items-center justify-center shadow-lg transition-transform hover:scale-110 active:scale-95 focus:outline-none"
-            aria-label="Play tutorial video"
-          >
-            <svg id="playIcon" class="w-7 h-7 ml-1" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M8 5v14l11-7z"></path>
-            </svg>
-            <svg id="pauseIcon" class="w-6 h-6 hidden" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"></path>
-            </svg>
-          </button>
-        </div>
-
-        <!-- Top bar mockup -->
-        <div class="relative z-10 p-3 flex justify-between items-center text-xs text-slate-400">
-          <span class="flex items-center gap-1.5 font-medium text-slate-300">
-            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            Tutorial Guide
-          </span>
-          <span class="bg-slate-900/80 px-2 py-0.5 rounded text-[11px] font-mono">01:45</span>
-        </div>
-
-        <!-- Bottom Timeline Slider Mock -->
-        <div class="relative z-10 p-3 w-full space-y-1">
-          <div class="w-full bg-slate-700/70 h-1.5 rounded-full overflow-hidden relative cursor-pointer">
-            <div id="videoProgress" class="bg-portal-accent h-full w-1/4 rounded-full transition-all duration-300"></div>
-          </div>
-          <div class="flex justify-between text-[10px] text-slate-400 font-mono">
-            <span>0:26</span>
-            <span>1:45</span>
-          </div>
-        </div>
+      <!-- Official YouTube Tutorial Embed -->
+      <div class="mt-4 video-container" style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+        <iframe 
+          src="https://www.youtube.com/embed/S1kHYEkfALU" 
+          title="How to Generate Key / Access to PoDha Resources" 
+          style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0;" 
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+          allowfullscreen>
+        </iframe>
       </div>
 
       <!-- Video Explanatory Note -->
