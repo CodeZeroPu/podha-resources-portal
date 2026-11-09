@@ -1,0 +1,5 @@
+node_modules/
+venv/
+study_library/
+temp_drive_pdfs/
+.env

@@ -1,0 +1,1599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ICSE PoDha - Live Study Resource Vault</title>
+  
+  <!-- Immediate Access Guard: Bounces unverified or expired users before rendering -->
+  <script>
+    (function checkAccessAuth() {
+      const expiry = localStorage.getItem('podha_resources_expiry');
+      if (!expiry || Date.now() > Number(expiry)) {
+        window.location.replace('verify.html');
+      }
+    })();
+  </script>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            portal: {
+              card: '#1e2538',
+              cardBorder: '#2e384d',
+              innerBox: '#262f44',
+              noteBox: '#2b3345',
+              accent: '#6371f2',
+              accentHover: '#5260e4'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- PDF.js CDN (Secure Canvas-Based Rendering Engine) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>
+    if (window.pdfjsLib) {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+  </script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+    
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    
+    .font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.6);
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: rgba(100, 116, 139, 0.4);
+      border-radius: 9999px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: rgba(100, 116, 139, 0.7);
+    }
+
+    /* Print Protection: Blocks print dialog & screen print actions */
+    @media print {
+      body, html, * {
+        display: none !important;
+        visibility: hidden !important;
+      }
+    }
+
+    /* Anti-Selection & Anti-Drag on Secure Elements */
+    .secure-shield {
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+    }
+
+    /* Translucent Security Watermark Pattern */
+    .watermark-overlay {
+      background-image: repeating-linear-gradient(
+        -45deg,
+        rgba(99, 113, 242, 0.03),
+        rgba(99, 113, 242, 0.03) 80px,
+        rgba(99, 113, 242, 0.07) 80px,
+        rgba(99, 113, 242, 0.07) 160px
+      );
+    }
+
+    /* Search Term Highlighting */
+    mark.search-highlight {
+      background-color: rgba(251, 191, 36, 0.25);
+      color: #fbbf24;
+      padding: 0.1em 0.25em;
+      border-radius: 0.25rem;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body class="bg-slate-900 min-h-screen text-slate-100 flex flex-col antialiased selection:bg-indigo-500 selection:text-white secure-shield">
+
+  <!-- Top Navigation Bar -->
+  <header class="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2">
+      <!-- Logo & Brand -->
+      <div class="flex items-center space-x-3 shrink-0">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/20 text-white font-black text-lg">
+          P
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="font-bold text-white text-base tracking-tight">ICSE PoDha</span>
+            <span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+              Live Database
+            </span>
+          </div>
+          <p class="text-xs text-slate-400 hidden sm:block">Telegram Bot Live Pipeline &bull; Class 10 Vault</p>
+        </div>
+      </div>
+
+      <!-- Navigation & Mode Switcher Tabs -->
+      <div class="flex items-center bg-slate-950/70 p-1 rounded-xl border border-slate-800 text-xs font-medium">
+        <button 
+          id="tabDashboard" 
+          onclick="switchTab('dashboard')" 
+          class="px-3 py-1.5 rounded-lg transition-all duration-200 bg-portal-accent text-white shadow-sm flex items-center gap-1.5"
+        >
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path>
+          </svg>
+          <span class="hidden sm:inline">Resource</span> Vault
+        </button>
+        <button 
+          id="tabVerification" 
+          onclick="switchTab('verification')" 
+          class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition-all duration-200 flex items-center gap-1.5"
+        >
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+          </svg>
+          <span class="hidden sm:inline">Verification</span> Portal
+        </button>
+      </div>
+
+      <!-- Session Status & Quick Actions -->
+      <div class="flex items-center gap-2 sm:gap-3 shrink-0">
+        <!-- Live Countdown Badge -->
+        <div id="sessionBadge" class="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/25 rounded-xl text-emerald-400 text-xs font-semibold shadow-sm">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span id="sessionTimerText">Active (24h)</span>
+        </div>
+
+        <!-- Lock Portal Button -->
+        <button 
+          onclick="lockSession()" 
+          title="End session and return to verification portal"
+          class="inline-flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-rose-400 px-3 py-1.5 rounded-lg border border-slate-700 hover:border-rose-500/40 text-xs font-medium transition"
+        >
+          <svg class="w-3.5 h-3.5 text-slate-400 group-hover:text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+          </svg>
+          <span class="hidden sm:inline">Lock</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==========================================
+       RESOURCE DASHBOARD VIEW
+       ========================================== -->
+  <main id="dashboardView" class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+    
+    <!-- Hero Banner with Live Database Stats -->
+    <div class="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950/40 to-slate-900 border border-slate-800 p-6 sm:p-8 shadow-2xl">
+      <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div class="space-y-2 max-w-2xl">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-500/10 border border-sky-500/20 text-sky-400 text-xs font-semibold">
+            <span class="w-2 h-2 rounded-full bg-sky-400 animate-pulse"></span>
+            Live Telegram Bot Catalog &bull; Real-time Database Pipeline
+          </div>
+          <h1 class="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white tracking-tight">
+            Class 10 ICSE Study Materials Dashboard
+          </h1>
+          <p class="text-sm sm:text-base text-slate-400 leading-relaxed">
+            Directly connected to the Telegram Bot database pipeline. All uploaded prelims, chapterwise revision notes, high-yield formula cheat sheets, and solved papers reflect instantly on this portal.
+          </p>
+        </div>
+
+        <!-- Quick Access Stat Cards -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 shrink-0">
+          <div class="bg-slate-800/80 border border-slate-700/60 rounded-xl p-3 text-center backdrop-blur-sm">
+            <div id="statTotalFiles" class="text-xl sm:text-2xl font-black text-indigo-400">0</div>
+            <div class="text-[11px] text-slate-400 font-medium">Uploaded Files</div>
+          </div>
+          <div class="bg-slate-800/80 border border-slate-700/60 rounded-xl p-3 text-center backdrop-blur-sm">
+            <div id="statTotalFolders" class="text-xl sm:text-2xl font-black text-emerald-400">0</div>
+            <div class="text-[11px] text-slate-400 font-medium">Folders &amp; Modules</div>
+          </div>
+          <div class="bg-slate-800/80 border border-slate-700/60 rounded-xl p-3 text-center backdrop-blur-sm">
+            <div id="statTotalSubjects" class="text-xl sm:text-2xl font-black text-amber-400">0</div>
+            <div class="text-[11px] text-slate-400 font-medium">Subjects</div>
+          </div>
+          <div class="bg-slate-800/80 border border-slate-700/60 rounded-xl p-3 text-center backdrop-blur-sm flex flex-col justify-center items-center">
+            <button 
+              onclick="fetchLiveCatalog(true)" 
+              class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-500/30 rounded-lg text-xs font-semibold transition"
+              title="Refresh live catalog from server"
+            >
+              <svg id="syncSpinIcon" class="w-3.5 h-3.5 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+              </svg>
+              <span>Sync Live</span>
+            </button>
+            <div class="text-[10px] text-slate-500 mt-1">Instant Pipeline</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Google-Like Smart Search Bar & Filter System -->
+    <div class="space-y-4 bg-portal-card/90 border border-portal-cardBorder rounded-2xl p-4 sm:p-6 shadow-xl">
+      
+      <!-- Main Search Box Container -->
+      <div class="relative">
+        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
+          <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+          </svg>
+        </div>
+        <input 
+          type="text" 
+          id="searchInput" 
+          oninput="handleSearchInput(this.value)"
+          placeholder="Search files, folders, or keywords (e.g., factors, class 10 physics, oswaal, biology)..." 
+          class="w-full pl-12 pr-12 py-3.5 bg-portal-innerBox border border-slate-700/80 rounded-xl text-base text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-portal-accent/60 focus:border-portal-accent transition shadow-inner"
+          autocomplete="off"
+        >
+        <!-- Clear Query Button -->
+        <button 
+          id="clearSearchBtn" 
+          onclick="clearSearch()" 
+          class="hidden absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-white transition"
+          title="Clear search query"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Quick Subject & Category Filter Chips -->
+      <div id="subjectChipsContainer" class="flex items-center gap-2 overflow-x-auto pb-1 custom-scrollbar text-xs font-medium">
+        <button onclick="setSubjectFilter('all')" class="subject-chip active px-3.5 py-1.5 rounded-lg bg-indigo-600 text-white font-semibold whitespace-nowrap transition" data-filter="all">
+          All Materials (<span id="chipCountAll">0</span>)
+        </button>
+        <button onclick="setSubjectFilter('Physics')" class="subject-chip px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700/70 whitespace-nowrap transition" data-filter="Physics">
+          ⚡ Physics (<span id="chipCountPhysics">0</span>)
+        </button>
+        <button onclick="setSubjectFilter('Chemistry')" class="subject-chip px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700/70 whitespace-nowrap transition" data-filter="Chemistry">
+          🧪 Chemistry (<span id="chipCountChemistry">0</span>)
+        </button>
+        <button onclick="setSubjectFilter('Biology')" class="subject-chip px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700/70 whitespace-nowrap transition" data-filter="Biology">
+          🧬 Biology (<span id="chipCountBiology">0</span>)
+        </button>
+        <button onclick="setSubjectFilter('Mathematics')" class="subject-chip px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700/70 whitespace-nowrap transition" data-filter="Mathematics">
+          📐 Mathematics (<span id="chipCountMathematics">0</span>)
+        </button>
+        <button onclick="setSubjectFilter('Computer Applications')" class="subject-chip px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700/70 whitespace-nowrap transition" data-filter="Computer Applications">
+          💻 Computer (<span id="chipCountComputer">0</span>)
+        </button>
+        <button onclick="setSubjectFilter('Geography')" class="subject-chip px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700/70 whitespace-nowrap transition" data-filter="Geography">
+          🌍 Geography (<span id="chipCountGeography">0</span>)
+        </button>
+        <button onclick="setSubjectFilter('History & Civics')" class="subject-chip px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700/70 whitespace-nowrap transition" data-filter="History & Civics">
+          🏛️ History &amp; Civics (<span id="chipCountHistory">0</span>)
+        </button>
+        <button onclick="setSubjectFilter('English')" class="subject-chip px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700/70 whitespace-nowrap transition" data-filter="English">
+          📚 English (<span id="chipCountEnglish">0</span>)
+        </button>
+        <button onclick="setSubjectFilter('Top Schools Prelims')" class="subject-chip px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700/70 whitespace-nowrap transition" data-filter="Top Schools Prelims">
+          🏆 Top Schools Prelims (<span id="chipCountPrelims">0</span>)
+        </button>
+        <button onclick="setSubjectFilter('All Books')" class="subject-chip px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700/70 whitespace-nowrap transition" data-filter="All Books">
+          📖 All Books (<span id="chipCountBooks">0</span>)
+        </button>
+      </div>
+
+      <!-- Search Results Header & Filter Context -->
+      <div id="searchResultsBanner" class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-slate-800 text-xs text-slate-400">
+        <div id="resultsCountText" class="font-medium">
+          Loading live database...
+        </div>
+        <div class="flex items-center gap-3">
+          <span class="text-slate-500">Press <kbd class="px-1.5 py-0.5 bg-slate-800 border border-slate-700 rounded text-[10px] text-slate-300 font-mono">/</kbd> to focus search</span>
+          <button 
+            id="viewToggleBtn" 
+            onclick="toggleViewMode()" 
+            class="hover:text-white text-slate-400 transition flex items-center gap-1"
+          >
+            <span id="viewModeLabel">Grid View</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Live File Catalog Container (Grid / List) -->
+    <div id="catalogDisplayContainer" class="space-y-3">
+      <!-- Dynamically rendered live files from backend pipeline -->
+    </div>
+
+    <!-- Pagination / Load More Controls -->
+    <div id="paginationContainer" class="hidden flex flex-col sm:flex-row items-center justify-between gap-4 py-4 px-2 bg-slate-900/60 rounded-2xl border border-slate-800/80">
+      <div id="paginationInfo" class="text-xs text-slate-400">
+        Showing 1 to 50 of 1,967 files
+      </div>
+      <div class="flex items-center gap-2">
+        <button 
+          id="prevPageBtn" 
+          onclick="changeCatalogPage(-1)" 
+          class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:pointer-events-none text-xs text-slate-200 transition"
+        >
+          &larr; Previous
+        </button>
+        <span id="pageIndicator" class="text-xs font-mono text-slate-300 px-2">Page 1 / 40</span>
+        <button 
+          id="nextPageBtn" 
+          onclick="changeCatalogPage(1)" 
+          class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:pointer-events-none text-xs text-slate-200 transition"
+        >
+          Next &rarr;
+        </button>
+      </div>
+    </div>
+
+    <!-- Loading State Placeholder -->
+    <div id="catalogLoadingState" class="py-24 text-center">
+      <svg class="w-10 h-10 animate-spin text-portal-accent mx-auto mb-4" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+      </svg>
+      <h3 class="text-base font-bold text-white">Fetching Live Catalog</h3>
+      <p class="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+        Querying backend pipeline endpoint <code class="text-indigo-400 font-mono">/api/files</code> for materials uploaded via Telegram bot...
+      </p>
+    </div>
+
+  </main>
+
+  <!-- ==========================================
+       SECURE CANVAS-BASED PDF VIEWER MODAL
+       ========================================== -->
+  <div 
+    id="secureViewerModal" 
+    class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 backdrop-blur-md p-2 sm:p-4 md:p-6 transition-all duration-300 hidden select-none"
+  >
+    <div 
+      id="secureViewerContainer" 
+      class="relative w-full max-w-6xl h-[94vh] bg-portal-card border border-portal-cardBorder rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+    >
+      <!-- Modal Header Bar -->
+      <div class="px-4 py-3 bg-slate-900/95 border-b border-slate-700/80 flex flex-wrap items-center justify-between gap-3 shrink-0">
+        
+        <!-- Document Information -->
+        <div class="flex items-center gap-2.5 min-w-0">
+          <div class="w-8 h-8 rounded-lg bg-sky-500/20 text-sky-400 flex items-center justify-center shrink-0">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+          </div>
+          <div class="min-w-0">
+            <h3 id="viewerModalTitle" class="text-sm sm:text-base font-bold text-white truncate max-w-xs sm:max-w-md lg:max-w-xl">
+              Document Preview
+            </h3>
+            <div class="flex items-center gap-2 text-[11px] text-slate-400">
+              <span class="inline-flex items-center gap-1 text-sky-400 font-medium">
+                <span class="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse"></span>
+                Telegram Bot Stream
+              </span>
+              <span>&bull;</span>
+              <span id="viewerFileIdBadge" class="text-slate-400 font-mono text-[10px] truncate max-w-[140px] sm:max-w-[220px]">
+                File ID
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Center: Interactive Page Navigation & Zoom Toolbar -->
+        <div id="viewerToolbar" class="flex items-center gap-1.5 bg-slate-950/70 p-1 rounded-xl border border-slate-800 text-xs">
+          <!-- Prev Page -->
+          <button 
+            id="viewerPrevPageBtn" 
+            onclick="changeViewerPage(-1)" 
+            class="p-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-slate-800 transition disabled:opacity-30 disabled:pointer-events-none"
+            title="Previous Page"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+          </button>
+          
+          <!-- Page Counter -->
+          <div class="flex items-center gap-1 px-1.5 text-slate-300 font-mono text-xs">
+            <span>Page</span>
+            <input 
+              id="currentPageInput" 
+              type="number" 
+              value="1" 
+              min="1" 
+              max="1" 
+              onchange="onPageInputChange(this.value)"
+              class="w-10 text-center bg-slate-800 border border-slate-700 rounded text-xs text-white py-0.5 focus:outline-none focus:border-portal-accent"
+            >
+            <span>/</span>
+            <span id="totalPagesSpan" class="text-slate-400 font-bold">1</span>
+          </div>
+
+          <!-- Next Page -->
+          <button 
+            id="viewerNextPageBtn" 
+            onclick="changeViewerPage(1)" 
+            class="p-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-slate-800 transition disabled:opacity-30 disabled:pointer-events-none"
+            title="Next Page"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+          </button>
+
+          <div class="w-px h-4 bg-slate-700/60 mx-1"></div>
+
+          <!-- Zoom Out -->
+          <button 
+            onclick="adjustZoom(-0.2)" 
+            class="p-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-slate-800 transition" 
+            title="Zoom Out"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/></svg>
+          </button>
+          
+          <!-- Zoom Display -->
+          <span id="zoomLevelDisplay" class="text-[11px] font-mono text-slate-400 px-1 min-w-[42px] text-center">100%</span>
+
+          <!-- Zoom In -->
+          <button 
+            onclick="adjustZoom(0.2)" 
+            class="p-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-slate-800 transition" 
+            title="Zoom In"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+          </button>
+
+          <!-- Fit Width -->
+          <button 
+            onclick="fitWidthZoom()" 
+            class="p-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-slate-800 transition text-[10px] font-semibold hidden md:inline" 
+            title="Fit to Width"
+          >
+            Fit
+          </button>
+        </div>
+
+        <!-- Right: Security Badges & Close -->
+        <div class="flex items-center gap-2 shrink-0">
+          <span class="hidden lg:inline-flex items-center gap-1 px-2.5 py-1 bg-slate-800 border border-slate-700 rounded-lg text-[11px] text-slate-300 font-medium">
+            <svg class="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+            </svg>
+            Canvas Stream Protected
+          </span>
+
+          <!-- Close Modal Button -->
+          <button 
+            onclick="closeSecureViewer()" 
+            title="Close Viewer (Esc)"
+            class="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition focus:outline-none focus:ring-2 focus:ring-portal-accent/50"
+            aria-label="Close Viewer"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Viewer Body Viewport -->
+      <div 
+        id="viewerBodyViewport" 
+        class="relative flex-1 w-full bg-slate-950 overflow-auto custom-scrollbar flex flex-col items-center justify-start p-4 watermark-overlay secure-shield"
+      >
+        <!-- Loading Spinner & Status Overlay -->
+        <div id="viewerLoadingOverlay" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/95 z-30 transition-opacity duration-300">
+          <svg class="w-10 h-10 animate-spin text-portal-accent mb-3" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+          </svg>
+          <span id="viewerStatusMessage" class="text-xs text-slate-300 font-medium">Resolving document stream from Telegram...</span>
+          <span id="viewerSubStatus" class="text-[11px] text-slate-500 mt-1 max-w-md text-center">Fetching secure stream via Telegram Bot API</span>
+        </div>
+
+        <!-- Canvas Container (Primary Secure PDF Viewport) -->
+        <div id="canvasWrapper" class="relative my-auto shadow-2xl rounded-lg overflow-hidden border border-slate-800 bg-white">
+          <canvas id="pdfCanvas" class="block secure-shield"></canvas>
+          
+          <!-- Translucent Floating Security Watermark Layer over Canvas -->
+          <div class="absolute inset-0 pointer-events-none flex flex-col justify-between p-6 select-none opacity-20">
+            <div class="text-[10px] font-mono text-slate-900 tracking-wider">ICSE PoDha Vault &bull; Live Telegram Stream</div>
+            <div class="text-sm font-black text-slate-900 -rotate-12 text-center tracking-widest uppercase">STREAM PROTECTED &bull; DO NOT COPY</div>
+            <div class="text-[10px] font-mono text-slate-900 text-right">TELEGRAM BOT PIPELINE</div>
+          </div>
+        </div>
+
+        <!-- Resilient Fallback Container (Displayed cleanly if stream fails or offline) -->
+        <div id="viewerFallbackContainer" class="hidden my-auto max-w-lg w-full bg-portal-card border border-slate-700/80 rounded-2xl p-6 sm:p-8 text-center space-y-5 shadow-2xl z-20">
+          <div class="w-14 h-14 rounded-2xl bg-amber-500/15 text-amber-400 border border-amber-500/30 flex items-center justify-center mx-auto text-2xl shadow-inner">
+            📄
+          </div>
+          <div class="space-y-1.5">
+            <h3 id="fallbackDocTitle" class="text-base sm:text-lg font-bold text-white truncate max-w-md mx-auto">
+              Document Stream
+            </h3>
+            <p id="fallbackDocFolder" class="text-xs text-slate-400 truncate max-w-md mx-auto">
+              📁 Curated Material / Physics
+            </p>
+          </div>
+
+          <!-- Diagnostic Status Box -->
+          <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-3.5 text-left text-xs space-y-2 font-mono">
+            <div class="flex items-center justify-between text-[11px] text-slate-400 border-b border-slate-800 pb-2">
+              <span class="text-slate-500">Status</span>
+              <span id="fallbackStatusBadge" class="text-amber-400 font-semibold">Live Proxy Stream Notice</span>
+            </div>
+            <div class="text-[11px] text-slate-300 break-all leading-relaxed" id="fallbackErrorDetail">
+              Browser CORS policy prevents direct client-side Telegram access. Route through backend proxy or open via Telegram.
+            </div>
+            <div class="pt-1 flex items-center justify-between text-[10px] text-slate-500">
+              <span class="truncate max-w-[200px]" id="fallbackFileIdDisplay">ID: BQAC...</span>
+              <button onclick="copyCurrentFileId()" class="text-indigo-400 hover:text-indigo-300 transition font-sans font-medium">Copy ID</button>
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="flex flex-col sm:flex-row gap-2.5 pt-1">
+            <a 
+              id="fallbackTelegramLink" 
+              href="https://t.me/c/3771095032" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              class="flex-1 py-2.5 px-4 bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold rounded-xl text-xs transition shadow-lg flex items-center justify-center gap-2"
+            >
+              <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/></svg>
+              <span>Open in Telegram Channel</span>
+            </a>
+            <button 
+              onclick="loadSampleDemoPdf()" 
+              class="py-2.5 px-4 bg-portal-accent/20 hover:bg-portal-accent text-indigo-300 hover:text-white border border-portal-accent/40 rounded-xl text-xs font-semibold transition"
+            >
+              Test Canvas Engine
+            </button>
+          </div>
+          <div class="pt-1">
+            <button 
+              onclick="closeSecureViewer()" 
+              class="text-xs text-slate-500 hover:text-slate-300 transition"
+            >
+              Dismiss and return to catalog
+            </button>
+          </div>
+        </div>
+
+        <!-- Large File Native Mode Container (Files > 20 MB) -->
+        <div id="viewerLargeFileContainer" class="hidden my-auto max-w-lg w-full bg-portal-card border border-sky-500/30 rounded-2xl p-6 sm:p-8 text-center space-y-5 shadow-2xl z-20">
+          <!-- Header Icon -->
+          <div class="w-16 h-16 rounded-2xl bg-sky-500/15 text-sky-400 border border-sky-500/30 flex items-center justify-center mx-auto shadow-inner">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"/>
+            </svg>
+          </div>
+
+          <!-- Title & Folder -->
+          <div class="space-y-1.5">
+            <h3 id="largeFileDocTitle" class="text-base sm:text-lg font-bold text-white truncate max-w-md mx-auto">
+              Large Document
+            </h3>
+            <p id="largeFileDocFolder" class="text-xs text-slate-400 truncate max-w-md mx-auto">
+              📁 Study Materials
+            </p>
+          </div>
+
+          <!-- Size Warning Banner -->
+          <div class="bg-sky-950/60 border border-sky-500/20 rounded-xl p-4 text-left space-y-2">
+            <div class="flex items-center gap-2">
+              <span class="text-sky-400 text-sm">ℹ️</span>
+              <span class="text-xs font-semibold text-sky-300">Large File — Native Telegram Access Required</span>
+            </div>
+            <p id="largeFileBannerDesc" class="text-[11px] text-slate-300 leading-relaxed">
+              This file is <strong id="largeFileSizeDisplay" class="text-white font-semibold">larger than 20 MB</strong>,
+              which exceeds Telegram Bot API's streaming limit. You can view or download it instantly via 
+              <strong class="text-sky-300">Telegram's native player</strong> with no size restrictions (supports up to 2 GB).
+            </p>
+          </div>
+
+          <!-- File ID Info Row -->
+          <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-3 flex items-center justify-between text-xs font-mono">
+            <span class="text-slate-400 truncate max-w-[240px]" id="largeFileIdDisplay">ID: BQAC...</span>
+            <button onclick="copyCurrentFileId()" class="text-indigo-400 hover:text-indigo-300 transition font-sans font-medium text-[11px] shrink-0 ml-2">Copy ID</button>
+          </div>
+
+          <!-- Primary Action: Open in Telegram / Mirror -->
+          <a 
+            id="largeFileTelegramLink" 
+            href="https://t.me/c/3771095032" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            class="w-full py-3 px-5 bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold rounded-xl text-sm transition shadow-lg shadow-sky-500/20 flex items-center justify-center gap-2.5"
+          >
+            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/></svg>
+            <span id="largeFileBtnText">Open / Download in Telegram (No Size Limit)</span>
+          </a>
+
+          <!-- Secondary Actions -->
+          <div class="pt-1">
+            <button 
+              onclick="closeSecureViewer()" 
+              class="text-xs text-slate-500 hover:text-slate-300 transition"
+            >
+              Dismiss and return to catalog
+            </button>
+          </div>
+        </div>
+
+        <!-- Fallback Iframe (Hidden by default) -->
+        <iframe 
+          id="secureIframeFallback" 
+          src="about:blank" 
+          class="hidden w-full h-full border-0 rounded-b-2xl select-none"
+          allow="autoplay"
+          loading="lazy"
+        ></iframe>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Global Footer -->
+  <footer class="border-t border-slate-800 bg-slate-950/50 py-6 mt-12">
+    <div class="max-w-7xl mx-auto px-4 text-center text-xs text-slate-500 space-y-2">
+      <div>ICSE PoDha Study Repository &bull; Live Telegram Bot Database Pipeline</div>
+      <div class="text-[11px] text-slate-600">All study papers, past boards, and notes belong to their respective creators &amp; ICSE institutions.</div>
+    </div>
+  </footer>
+
+  <!-- ==========================================
+       CORE ARCHITECTURAL SCRIPT
+       ========================================== -->
+  <script>
+    // ========================================================
+    // 1. CONFIGURATION
+    // ========================================================
+    const TELEGRAM_CONFIG = {
+      CHANNEL_ID: "-1003771095032",
+      STREAM_PROXY_ENDPOINT: "/api/stream",
+      RESOLVE_ENDPOINT: "/api/resolve"
+    };
+
+    // ========================================================
+    // 2. SECURITY BOUNCER (24H LocalStorage Verification Guard)
+    // ========================================================
+    function checkSession() {
+      const expiry = localStorage.getItem('podha_resources_expiry');
+      if (!expiry || Date.now() > Number(expiry)) {
+        window.location.replace('verify.html');
+        return false;
+      }
+      return true;
+    }
+
+    function updateSessionTimer() {
+      const expiry = localStorage.getItem('podha_resources_expiry');
+      if (!expiry) {
+        window.location.replace('verify.html');
+        return;
+      }
+
+      const remainingMs = Number(expiry) - Date.now();
+      if (remainingMs <= 0) {
+        alert('Your 24-hour access period has ended. Please verify again to continue.');
+        window.location.replace('verify.html');
+        return;
+      }
+
+      const totalMinutes = Math.floor(remainingMs / (1000 * 60));
+      const hours = Math.floor(totalMinutes / 60);
+      const minutes = totalMinutes % 60;
+
+      const timerString = `${hours}h ${minutes}m left`;
+      const badgeText = document.getElementById('sessionTimerText');
+      if (badgeText) badgeText.innerText = `Active: ${timerString}`;
+    }
+
+    function lockSession() {
+      localStorage.removeItem('podha_resources_expiry');
+      window.location.href = 'verify.html';
+    }
+
+    function switchTab(tab) {
+      if (tab === 'verification') {
+        window.location.href = 'verify.html';
+      } else {
+        const dashboard = document.getElementById('dashboardView');
+        if (dashboard) dashboard.classList.remove('hidden');
+      }
+    }
+
+    // ========================================================
+    // 3. EXACT SMART SEARCH LOGIC (Google-Like Multi-Word Matching)
+    // ========================================================
+    /**
+     * Filters files using multi-keyword partial & case-insensitive matching
+     * Matching across file name, folder name, and description.
+     */
+    function filterFiles(searchQuery, allFiles) {
+      const query = (searchQuery || "").toLowerCase().trim();
+      if (!query) return allFiles;
+
+      // Split query into individual keywords for flexible multi-term matching
+      const keywords = query.split(/\s+/).filter(Boolean);
+
+      return allFiles.filter(file => {
+        const fileName = (file.name || "").toLowerCase();
+        const folderName = (file.folder || "").toLowerCase();
+        const description = (file.description || "").toLowerCase();
+
+        // Match if ALL keywords appear anywhere in file name, folder, or description
+        return keywords.every(keyword => 
+          fileName.includes(keyword) || 
+          folderName.includes(keyword) || 
+          description.includes(keyword)
+        );
+      });
+    }
+
+    // Highlight search keywords within text strings
+    function highlightKeywords(text, query) {
+      if (!query || !text) return text || "";
+      const keywords = query.toLowerCase().trim().split(/\s+/).filter(Boolean);
+      if (keywords.length === 0) return text;
+
+      // Escape regex special chars
+      const escaped = keywords.map(kw => kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
+      const regex = new RegExp(`(${escaped})`, 'gi');
+      return text.replace(regex, '<mark class="search-highlight">$1</mark>');
+    }
+
+    // ========================================================
+    // 4. LIVE DATA PIPELINE (Telegram Bot -> Database -> Website)
+    // ========================================================
+    let LIVE_FILES = [];             // All live files from database
+    let activeSubjectFilter = 'all'; // Current category filter
+    let activeSearchQuery = '';      // Current search query
+    let currentPage = 1;             // Pagination current page
+    const ITEMS_PER_PAGE = 40;       // File cards per page
+    let viewMode = 'list';           // 'list' or 'grid'
+
+    /**
+     * Client-side flattening parser for catalog tree (Used when direct catalog.json is consumed)
+     */
+    function parseCatalogTree(obj, currentPath = '') {
+      let files = [];
+      if (!obj || typeof obj !== 'object') return files;
+
+      for (const key of Object.keys(obj)) {
+        if (key === 'files' && Array.isArray(obj[key])) {
+          const cleanFolder = currentPath.replace(/^ICSE PoDha STUDY MATERIALS\s*[\/\\]?/, '').trim() || 'General';
+          for (const item of obj[key]) {
+            if (!item || !item.fileId) continue;
+
+            let subject = 'General';
+            const folderLower = cleanFolder.toLowerCase();
+            if (folderLower.includes('physics') || folderLower.includes('phy')) subject = 'Physics';
+            else if (folderLower.includes('chemistry') || folderLower.includes('chem')) subject = 'Chemistry';
+            else if (folderLower.includes('biology') || folderLower.includes('bio')) subject = 'Biology';
+            else if (folderLower.includes('math')) subject = 'Mathematics';
+            else if (folderLower.includes('comp') || folderLower.includes('java')) subject = 'Computer Applications';
+            else if (folderLower.includes('geo')) subject = 'Geography';
+            else if (folderLower.includes('history') || folderLower.includes('civics')) subject = 'History & Civics';
+            else if (folderLower.includes('english') || folderLower.includes('ep1') || folderLower.includes('ep2')) subject = 'English';
+            else if (folderLower.includes('robotics') || folderLower.includes('rai')) subject = 'Robotics & AI';
+            else if (folderLower.includes('top school') || folderLower.includes('prelim')) subject = 'Top Schools Prelims';
+            else if (folderLower.includes('all books') || folderLower.includes('arihant') || folderLower.includes('oswaal') || folderLower.includes('educart')) subject = 'All Books';
+
+            files.push({
+              id: item.fileId,
+              fileId: item.fileId,
+              name: item.title || 'Untitled Document',
+              folder: cleanFolder,
+              subject: subject,
+              description: `${item.title || 'Document'} in ${cleanFolder}`,
+              date: item.date || '2026-11',
+              isLargeFile: item.isLargeFile || false,
+              fallbackUrl: item.fallbackUrl || null
+            });
+          }
+        } else if (typeof obj[key] === 'object' && obj[key] !== null) {
+          const nextPath = currentPath ? `${currentPath} / ${key}` : key;
+          files = files.concat(parseCatalogTree(obj[key], nextPath));
+        }
+      }
+      return files;
+    }
+
+    /**
+     * Primary live fetch: connects to backend /api/files endpoint
+     * Seamlessly falls back to direct catalog.json if running as standalone static file
+     */
+    async function fetchLiveCatalog(forceRefresh = false) {
+      const loadingEl = document.getElementById('catalogLoadingState');
+      const syncIcon = document.getElementById('syncSpinIcon');
+      
+      if (syncIcon) syncIcon.classList.add('animate-spin');
+      if (forceRefresh && loadingEl) loadingEl.classList.remove('hidden');
+
+      try {
+        let filesData = null;
+
+        // Step 1: Attempt to fetch from backend pipeline endpoint
+        try {
+          const res = await fetch('/api/files');
+          if (res.ok) {
+            const data = await res.json();
+            if (Array.isArray(data) && data.length > 0) {
+              filesData = data;
+            }
+          }
+        } catch (apiErr) {
+          console.info('Backend /api/files not reachable directly, reading catalog.json directly...');
+        }
+
+        // Step 2: Fallback to local catalog.json if /api/files was not reached
+        if (!filesData) {
+          const catRes = await fetch('catalog.json');
+          if (!catRes.ok) throw new Error(`HTTP ${catRes.status} reading catalog.json`);
+          const rawCatalog = await catRes.json();
+          filesData = parseCatalogTree(rawCatalog);
+        }
+
+        LIVE_FILES = filesData || [];
+        console.log(`✅ Loaded ${LIVE_FILES.length} live files from database.`);
+
+        updateCategoryPillCounts();
+        updateTopStats();
+        applyFiltersAndRender();
+
+      } catch (err) {
+        console.error('Error fetching live catalog:', err);
+        const container = document.getElementById('catalogDisplayContainer');
+        container.innerHTML = `
+          <div class="py-16 text-center text-rose-400 bg-portal-card border border-rose-500/30 rounded-2xl p-6">
+            <svg class="w-12 h-12 mx-auto text-rose-500 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+            <h3 class="text-base font-bold text-white">Live Catalog Connection Failed</h3>
+            <p class="text-xs text-slate-400 mt-1 max-w-md mx-auto">${err.message}</p>
+            <button onclick="fetchLiveCatalog(true)" class="mt-4 px-4 py-2 bg-portal-accent hover:bg-portal-accentHover text-white rounded-xl text-xs font-semibold transition">
+              Retry Live Sync
+            </button>
+          </div>
+        `;
+      } finally {
+        if (loadingEl) loadingEl.classList.add('hidden');
+        if (syncIcon) syncIcon.classList.remove('animate-spin');
+      }
+    }
+
+    function updateTopStats() {
+      const totalFilesEl = document.getElementById('statTotalFiles');
+      const totalFoldersEl = document.getElementById('statTotalFolders');
+      const totalSubjectsEl = document.getElementById('statTotalSubjects');
+
+      const folders = new Set(LIVE_FILES.map(f => f.folder));
+      const subjects = new Set(LIVE_FILES.map(f => f.subject));
+
+      if (totalFilesEl) totalFilesEl.innerText = LIVE_FILES.length.toLocaleString();
+      if (totalFoldersEl) totalFoldersEl.innerText = folders.size.toLocaleString();
+      if (totalSubjectsEl) totalSubjectsEl.innerText = subjects.size.toLocaleString();
+    }
+
+    function updateCategoryPillCounts() {
+      const countMap = {};
+      LIVE_FILES.forEach(f => {
+        countMap[f.subject] = (countMap[f.subject] || 0) + 1;
+      });
+
+      const setEl = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.innerText = (val || 0).toLocaleString();
+      };
+
+      setEl('chipCountAll', LIVE_FILES.length);
+      setEl('chipCountPhysics', countMap['Physics']);
+      setEl('chipCountChemistry', countMap['Chemistry']);
+      setEl('chipCountBiology', countMap['Biology']);
+      setEl('chipCountMathematics', countMap['Mathematics']);
+      setEl('chipCountComputer', countMap['Computer Applications']);
+      setEl('chipCountGeography', countMap['Geography']);
+      setEl('chipCountHistory', countMap['History & Civics']);
+      setEl('chipCountEnglish', countMap['English']);
+      setEl('chipCountPrelims', countMap['Top Schools Prelims']);
+      setEl('chipCountBooks', countMap['All Books']);
+    }
+
+    // ========================================================
+    // 5. SEARCH & FILTER CONTROLLER
+    // ========================================================
+    function handleSearchInput(value) {
+      activeSearchQuery = value;
+      currentPage = 1;
+      
+      const clearBtn = document.getElementById('clearSearchBtn');
+      if (clearBtn) {
+        if (value.trim()) clearBtn.classList.remove('hidden');
+        else clearBtn.classList.add('hidden');
+      }
+
+      applyFiltersAndRender();
+    }
+
+    function clearSearch() {
+      const input = document.getElementById('searchInput');
+      if (input) input.value = '';
+      handleSearchInput('');
+      input.focus();
+    }
+
+    function setSubjectFilter(sub) {
+      activeSubjectFilter = sub;
+      currentPage = 1;
+
+      document.querySelectorAll('.subject-chip').forEach(btn => {
+        if (btn.getAttribute('data-filter') === sub) {
+          btn.classList.remove('bg-slate-800', 'text-slate-300');
+          btn.classList.add('bg-indigo-600', 'text-white', 'font-semibold');
+        } else {
+          btn.classList.remove('bg-indigo-600', 'text-white', 'font-semibold');
+          btn.classList.add('bg-slate-800', 'text-slate-300');
+        }
+      });
+
+      applyFiltersAndRender();
+    }
+
+    function toggleViewMode() {
+      viewMode = (viewMode === 'list') ? 'grid' : 'list';
+      const label = document.getElementById('viewModeLabel');
+      if (label) label.innerText = (viewMode === 'list') ? 'Grid View' : 'List View';
+      applyFiltersAndRender();
+    }
+
+    function applyFiltersAndRender() {
+      // Step 1: Apply subject filter
+      let candidateFiles = LIVE_FILES;
+      if (activeSubjectFilter !== 'all') {
+        candidateFiles = candidateFiles.filter(f => f.subject === activeSubjectFilter);
+      }
+
+      // Step 2: Apply Google-like Smart Search
+      const filtered = filterFiles(activeSearchQuery, candidateFiles);
+
+      // Step 3: Update Search Results Banner
+      const resultsTextEl = document.getElementById('resultsCountText');
+      if (resultsTextEl) {
+        if (activeSearchQuery.trim()) {
+          resultsTextEl.innerHTML = `Found <strong class="text-white">${filtered.length.toLocaleString()}</strong> of <span class="text-slate-400">${LIVE_FILES.length.toLocaleString()}</span> live files for &ldquo;<span class="text-amber-400 font-semibold italic">${escapeHtml(activeSearchQuery)}</span>&rdquo;`;
+        } else if (activeSubjectFilter !== 'all') {
+          resultsTextEl.innerHTML = `Showing <strong class="text-white">${filtered.length.toLocaleString()}</strong> files in <span class="text-indigo-400 font-semibold">${activeSubjectFilter}</span>`;
+        } else {
+          resultsTextEl.innerHTML = `Total <strong class="text-white">${filtered.length.toLocaleString()}</strong> live files available in vault`;
+        }
+      }
+
+      // Step 4: Paginate
+      const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE) || 1;
+      if (currentPage > totalPages) currentPage = 1;
+
+      const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+      const paginatedItems = filtered.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+
+      // Render cards
+      renderCatalogCards(paginatedItems, filtered.length, activeSearchQuery);
+
+      // Update pagination controls
+      const pagContainer = document.getElementById('paginationContainer');
+      const pagInfo = document.getElementById('paginationInfo');
+      const pageIndicator = document.getElementById('pageIndicator');
+      const prevBtn = document.getElementById('prevPageBtn');
+      const nextBtn = document.getElementById('nextPageBtn');
+
+      if (pagContainer) {
+        if (filtered.length > ITEMS_PER_PAGE) {
+          pagContainer.classList.remove('hidden');
+          const endIndex = Math.min(startIndex + ITEMS_PER_PAGE, filtered.length);
+          if (pagInfo) pagInfo.innerText = `Showing ${startIndex + 1} to ${endIndex} of ${filtered.length.toLocaleString()} files`;
+          if (pageIndicator) pageIndicator.innerText = `Page ${currentPage} / ${totalPages}`;
+          if (prevBtn) prevBtn.disabled = (currentPage <= 1);
+          if (nextBtn) nextBtn.disabled = (currentPage >= totalPages);
+        } else {
+          pagContainer.classList.add('hidden');
+        }
+      }
+    }
+
+    function changeCatalogPage(delta) {
+      currentPage += delta;
+      applyFiltersAndRender();
+      window.scrollTo({ top: 300, behavior: 'smooth' });
+    }
+
+    // ========================================================
+    // 6. LIVE CATALOG RENDERER (Zero Mock Data)
+    // ========================================================
+    function renderCatalogCards(items, totalMatches, searchQuery) {
+      const container = document.getElementById('catalogDisplayContainer');
+      container.innerHTML = '';
+
+      if (items.length === 0) {
+        container.innerHTML = `
+          <div class="py-20 text-center text-slate-400 bg-portal-card border border-portal-cardBorder rounded-2xl p-6">
+            <svg class="w-12 h-12 mx-auto text-slate-600 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <h3 class="text-base font-bold text-slate-300">No matching study materials found</h3>
+            <p class="text-xs text-slate-500 mt-1 max-w-md mx-auto">
+              ${searchQuery ? `No files match "${escapeHtml(searchQuery)}". Try searching for topics like "factors", "calorimetry", "topo", "ogive", or "java".` : 'No files uploaded to this subject yet.'}
+            </p>
+            ${searchQuery ? `
+              <button onclick="clearSearch()" class="mt-4 px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl text-xs font-semibold transition border border-slate-700">
+                Clear Search Query
+              </button>
+            ` : ''}
+          </div>
+        `;
+        return;
+      }
+
+      if (viewMode === 'grid') {
+        container.className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4';
+      } else {
+        container.className = 'space-y-2.5';
+      }
+
+      items.forEach(file => {
+        const highlightedName = highlightKeywords(escapeHtml(file.name), searchQuery);
+        const highlightedFolder = highlightKeywords(escapeHtml(file.folder), searchQuery);
+        const safeTitle = (file.name || 'Document').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        const safeFolder = (file.folder || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        const safeFileId = (file.fileId || file.id).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+
+        if (viewMode === 'grid') {
+          // --- GRID CARD LAYOUT ---
+          const card = document.createElement('div');
+          card.className = 'bg-portal-card border border-portal-cardBorder hover:border-portal-accent/50 rounded-2xl p-4 sm:p-5 flex flex-col justify-between shadow-lg transition-all duration-200 group';
+          card.innerHTML = `
+            <div>
+              <div class="flex items-start justify-between gap-2 mb-2">
+                <span class="inline-flex items-center gap-1 text-[10px] font-semibold text-indigo-300 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">
+                  ${file.subject}
+                </span>
+                <span class="text-[10px] font-mono text-slate-500 bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800">
+                  PDF
+                </span>
+              </div>
+              <h3 class="text-sm font-bold text-white group-hover:text-portal-accent transition line-clamp-2 leading-snug">
+                ${highlightedName}
+              </h3>
+              <div class="flex items-center gap-1.5 text-[11px] text-slate-400 mt-2 line-clamp-1" title="${escapeHtml(file.folder)}">
+                <span class="text-amber-400">📁</span>
+                <span class="truncate">${highlightedFolder}</span>
+              </div>
+            </div>
+
+            <div class="pt-4 border-t border-slate-800 mt-4 flex items-center justify-between gap-2">
+              <span class="text-[10px] font-mono text-slate-500 truncate max-w-[120px]" title="Telegram File ID: ${file.fileId}">
+                ${file.fileId.substring(0, 14)}...
+              </span>
+              <button 
+                onclick="openSecureViewer('${safeFileId}', '${safeTitle}', '${safeFolder}')"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-portal-accent/20 hover:bg-portal-accent text-indigo-300 hover:text-white border border-portal-accent/40 hover:border-portal-accent rounded-lg text-xs font-semibold shadow-sm transition-all duration-200"
+              >
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                </svg>
+                View Online
+              </button>
+            </div>
+          `;
+          container.appendChild(card);
+        } else {
+          // --- ROW / LIST LAYOUT ---
+          const row = document.createElement('div');
+          row.className = 'flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3 bg-portal-card border border-portal-cardBorder hover:border-portal-accent/50 rounded-xl transition-all duration-150 group cursor-pointer';
+          row.onclick = () => openSecureViewer(safeFileId, safeTitle, safeFolder);
+
+          row.innerHTML = `
+            <!-- Left: Icon + File Details -->
+            <div class="flex items-start gap-3 min-w-0 flex-1">
+              <div class="w-8 h-8 rounded-lg bg-rose-500/15 text-rose-400 border border-rose-500/20 flex items-center justify-center shrink-0 mt-0.5">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                </svg>
+              </div>
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="text-sm font-semibold text-slate-200 group-hover:text-white transition">
+                    ${highlightedName}
+                  </span>
+                  <span class="text-[10px] font-semibold text-indigo-300 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20 shrink-0">
+                    ${file.subject}
+                  </span>
+                </div>
+                <div class="flex items-center gap-2 mt-1 text-[11px] text-slate-400 truncate">
+                  <span class="text-amber-400">📁</span>
+                  <span class="truncate">${highlightedFolder}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right: Metadata & Action Button -->
+            <div class="flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-800">
+              <span class="text-[10px] font-mono text-slate-500 hidden md:inline truncate max-w-[120px]" title="Telegram ID: ${file.fileId}">
+                ${file.fileId.substring(0, 14)}...
+              </span>
+              <button 
+                onclick="event.stopPropagation(); openSecureViewer('${safeFileId}', '${safeTitle}', '${safeFolder}')"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-portal-accent/20 hover:bg-portal-accent text-indigo-300 hover:text-white border border-portal-accent/40 hover:border-portal-accent rounded-lg text-xs font-semibold shadow-sm transition-all duration-200"
+              >
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                </svg>
+                <span>View Online</span>
+              </button>
+            </div>
+          `;
+          container.appendChild(row);
+        }
+      });
+    }
+
+    function escapeHtml(text) {
+      if (!text) return "";
+      return text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    // ========================================================
+    // 7. SECURE CANVAS VIEWER & TELEGRAM STREAM RESOLVER
+    // ========================================================
+    let currentPdfDoc = null;
+    let currentPdfPage = 1;
+    let totalPdfPages = 1;
+    let currentScale = 1.25;
+
+    let currentViewingFileId = null;
+
+    /**
+     * Resilient stream resolver:
+     * 1. Uses backend proxy /api/stream/:fileId (0 CORS issues, Range requests, hidden tokens)
+     * 2. Supports direct client fallback if running in custom environments
+     */
+    async function resolveTelegramFileStream(fileId) {
+      // Primary: Route through secure backend proxy endpoint
+      const proxyUrl = `/api/stream/${encodeURIComponent(fileId)}`;
+      
+      // If served via http/https, verify backend proxy connection
+      if (window.location.protocol.startsWith('http')) {
+        try {
+          const testRes = await fetch(proxyUrl, { method: 'HEAD' });
+          if (testRes.ok || testRes.status === 206) {
+            return proxyUrl;
+          }
+        } catch (proxyErr) {
+          console.warn('Backend proxy HEAD check notice, will attempt direct stream:', proxyErr);
+          return proxyUrl; // Still return proxyUrl for PDF.js to attempt range streaming
+        }
+      }
+
+      // If running on file:// protocol without backend server
+      if (window.location.protocol === 'file:') {
+        throw new Error('Local file:// protocol detected. Backend streaming proxy required. Run `node server.js` or `npm start` at http://localhost:3000 to enable instant CORS-free streaming.');
+      }
+
+      return proxyUrl;
+    }
+
+    async function renderPage(pageNum) {
+      if (!currentPdfDoc) return;
+      currentPdfPage = pageNum;
+      
+      const canvas = document.getElementById('pdfCanvas');
+      const ctx = canvas.getContext('2d');
+      const page = await currentPdfDoc.getPage(pageNum);
+
+      const viewport = page.getViewport({ scale: currentScale });
+      canvas.height = viewport.height;
+      canvas.width = viewport.width;
+
+      await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+
+      // Update Toolbar Controls
+      document.getElementById('currentPageInput').value = pageNum;
+      document.getElementById('currentPageInput').max = totalPdfPages;
+      document.getElementById('totalPagesSpan').innerText = totalPdfPages;
+      document.getElementById('viewerPrevPageBtn').disabled = (pageNum <= 1);
+      document.getElementById('viewerNextPageBtn').disabled = (pageNum >= totalPdfPages);
+      document.getElementById('zoomLevelDisplay').innerText = `${Math.round(currentScale * 100)}%`;
+    }
+
+    function changeViewerPage(offset) {
+      const target = currentPdfPage + offset;
+      if (target >= 1 && target <= totalPdfPages) {
+        renderPage(target);
+      }
+    }
+
+    function onPageInputChange(val) {
+      const num = parseInt(val, 10);
+      if (!isNaN(num) && num >= 1 && num <= totalPdfPages) {
+        renderPage(num);
+      } else {
+        document.getElementById('currentPageInput').value = currentPdfPage;
+      }
+    }
+
+    function adjustZoom(delta) {
+      currentScale = Math.min(Math.max(currentScale + delta, 0.5), 3.0);
+      renderPage(currentPdfPage);
+    }
+
+    function fitWidthZoom() {
+      const container = document.getElementById('viewerBodyViewport');
+      if (!container || !currentPdfDoc) return;
+      const targetWidth = Math.min(container.clientWidth - 48, 980);
+      currentPdfDoc.getPage(currentPdfPage).then(page => {
+        const unscaledViewport = page.getViewport({ scale: 1.0 });
+        currentScale = targetWidth / unscaledViewport.width;
+        renderPage(currentPdfPage);
+      });
+    }
+
+    async function openSecureViewer(fileId, title, folder) {
+      const modal = document.getElementById('secureViewerModal');
+      const titleEl = document.getElementById('viewerModalTitle');
+      const fileIdBadge = document.getElementById('viewerFileIdBadge');
+      const overlay = document.getElementById('viewerLoadingOverlay');
+      const statusMsg = document.getElementById('viewerStatusMessage');
+      const subStatus = document.getElementById('viewerSubStatus');
+      const canvasWrapper = document.getElementById('canvasWrapper');
+      const fallbackContainer = document.getElementById('viewerFallbackContainer');
+      const largeFileContainer = document.getElementById('viewerLargeFileContainer');
+      const toolbar = document.getElementById('viewerToolbar');
+
+      currentViewingFileId = fileId;
+      titleEl.innerText = title || 'Document Preview';
+      fileIdBadge.innerText = `ID: ${fileId}`;
+
+      // Reset modal view states — hide all content containers
+      modal.classList.remove('hidden');
+      document.body.classList.add('overflow-hidden');
+      overlay.classList.remove('opacity-0', 'pointer-events-none');
+      if (fallbackContainer) fallbackContainer.classList.add('hidden');
+      if (largeFileContainer) largeFileContainer.classList.add('hidden');
+      canvasWrapper.classList.remove('hidden');
+      if (toolbar) toolbar.classList.remove('opacity-40', 'pointer-events-none');
+
+      statusMsg.innerText = 'Connecting to Secure Stream Proxy...';
+      subStatus.innerText = `Resolving Telegram file [${fileId.substring(0, 16)}...]`;
+
+      try {
+        // Step 1: Pre-check via /api/resolve to detect FILE_TOO_LARGE or Internet Archive fallback before streaming
+        let isLargeFile = false;
+        let fileSizeBytes = null;
+        try {
+          const resolveRes = await fetch(`/api/resolve/${encodeURIComponent(fileId)}`);
+          const data = await resolveRes.json().catch(() => ({}));
+
+          if (data && data.isLargeFile) {
+            // Open high-speed Archive mirror link directly via modal
+            showLargeFileModal(title, data.streamUrl);
+            return;
+          }
+
+          if (resolveRes.status === 413 || (data && data.error === 'FILE_TOO_LARGE')) {
+            isLargeFile = true;
+            fileSizeBytes = (data && data.fileSize) || null;
+          }
+        } catch (resolveErr) {
+          // Resolve check failed (e.g., server offline); continue to stream attempt
+          console.warn('Pre-check resolve skipped:', resolveErr.message);
+        }
+
+        // Step 2: If large file detected, show Large File Native Mode immediately
+        if (isLargeFile) {
+          showLargeFileModal(fileId, title, folder, fileSizeBytes);
+          return;
+        }
+
+        // Step 3: Normal streaming for files ≤ 20 MB
+        const streamUrl = await resolveTelegramFileStream(fileId);
+        
+        statusMsg.innerText = 'Streaming document bytes via backend proxy...';
+        subStatus.innerText = 'Rendering PDF pages onto high-security canvas';
+
+        const loadingTask = pdfjsLib.getDocument({
+          url: streamUrl,
+          cMapUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/',
+          cMapPacked: true,
+          disableAutoFetch: false,
+          disableStream: false
+        });
+
+        currentPdfDoc = await loadingTask.promise;
+        totalPdfPages = currentPdfDoc.numPages;
+        currentPdfPage = 1;
+
+        await renderPage(1);
+        overlay.classList.add('opacity-0', 'pointer-events-none');
+
+      } catch (err) {
+        console.warn('Stream resolution notice:', err);
+        // Check if the streaming error itself is FILE_TOO_LARGE (backup detection)
+        const errMsg = (err && err.message) ? err.message.toLowerCase() : '';
+        if (errMsg.includes('file is too big') || errMsg.includes('file_too_large') || errMsg.includes('exceeds 20mb')) {
+          showLargeFileModal(fileId, title, folder, null);
+        } else {
+          // Step into Graceful Fallback Mode without crashing!
+          showFallbackViewer(fileId, title, folder, err);
+        }
+      }
+    }
+
+    /**
+     * Graceful Fallback Mode
+     * Displays a clean diagnostic card with direct Telegram access, copy ID, and demo rendering
+     */
+    function showFallbackViewer(fileId, title, folder, error) {
+      const overlay = document.getElementById('viewerLoadingOverlay');
+      const canvasWrapper = document.getElementById('canvasWrapper');
+      const fallbackContainer = document.getElementById('viewerFallbackContainer');
+      const largeFileContainer = document.getElementById('viewerLargeFileContainer');
+      const toolbar = document.getElementById('viewerToolbar');
+
+      // Hide loading spinner, canvas wrapper, and large file container
+      if (overlay) overlay.classList.add('opacity-0', 'pointer-events-none');
+      if (canvasWrapper) canvasWrapper.classList.add('hidden');
+      if (toolbar) toolbar.classList.add('opacity-40', 'pointer-events-none');
+      if (largeFileContainer) largeFileContainer.classList.add('hidden');
+
+      // Populate fallback details
+      const docTitleEl = document.getElementById('fallbackDocTitle');
+      const docFolderEl = document.getElementById('fallbackDocFolder');
+      const fileIdEl = document.getElementById('fallbackFileIdDisplay');
+      const errorDetailEl = document.getElementById('fallbackErrorDetail');
+      const statusBadge = document.getElementById('fallbackStatusBadge');
+
+      if (docTitleEl) docTitleEl.innerText = title || 'Study Document';
+      if (docFolderEl) docFolderEl.innerText = `📁 ${folder || 'Curated Material'}`;
+      if (fileIdEl) fileIdEl.innerText = `ID: ${fileId}`;
+      
+      let errorMsg = error && error.message ? error.message : 'Unable to stream file directly.';
+      if (errorMsg.includes('Failed to fetch') || errorMsg.includes('NetworkError')) {
+        errorMsg = 'Backend stream server not reachable or network blocked. Please run `node server.js` or `npm start` at http://localhost:3000 to enable instant CORS-free streaming.';
+        if (statusBadge) statusBadge.innerText = 'Server Proxy Offline';
+      } else {
+        if (statusBadge) statusBadge.innerText = 'Direct Access Mode';
+      }
+
+      if (errorDetailEl) errorDetailEl.innerText = errorMsg;
+
+      // Show fallback container cleanly
+      if (fallbackContainer) fallbackContainer.classList.remove('hidden');
+    }
+
+    /**
+      * Large File Native Mode
+      * Displayed when a file exceeds Telegram Bot API's 20 MB streaming limit or uses an Archive mirror.
+      * Provides a clean, informative UI with direct mirror or Telegram link (supports up to 2 GB).
+      * Supports:
+      *   showLargeFileModal(title, streamUrl)
+      *   showLargeFileModal(fileId, title, folder, fileSizeBytes)
+      */
+    function showLargeFileModal(arg1, arg2, folder, fileSizeBytes) {
+      const modal = document.getElementById('secureViewerModal');
+      const overlay = document.getElementById('viewerLoadingOverlay');
+      const canvasWrapper = document.getElementById('canvasWrapper');
+      const fallbackContainer = document.getElementById('viewerFallbackContainer');
+      const largeFileContainer = document.getElementById('viewerLargeFileContainer');
+      const toolbar = document.getElementById('viewerToolbar');
+      const titleEl = document.getElementById('viewerModalTitle');
+      const fileIdBadge = document.getElementById('viewerFileIdBadge');
+
+      let title = 'Large Study Document';
+      let streamUrl = null;
+      let fileId = currentViewingFileId || '';
+
+      // Check parameter signatures:
+      // Signature A: showLargeFileModal(title, streamUrl)
+      // Signature B: showLargeFileModal(fileId, title, folder, fileSizeBytes)
+      if (typeof arg2 === 'string' && (arg2.startsWith('http://') || arg2.startsWith('https://') || arg2.startsWith('/'))) {
+        title = arg1 || 'Large Study Document';
+        streamUrl = arg2;
+      } else {
+        if (arg1) fileId = arg1;
+        if (arg2) title = arg2;
+      }
+
+      // Ensure modal is revealed & scrolling is locked
+      if (modal) modal.classList.remove('hidden');
+      document.body.classList.add('overflow-hidden');
+
+      if (titleEl) titleEl.innerText = title;
+      if (fileIdBadge && fileId) fileIdBadge.innerText = `ID: ${fileId}`;
+
+      // Hide loading spinner, canvas, and standard fallback
+      if (overlay) overlay.classList.add('opacity-0', 'pointer-events-none');
+      if (canvasWrapper) canvasWrapper.classList.add('hidden');
+      if (fallbackContainer) fallbackContainer.classList.add('hidden');
+      if (toolbar) toolbar.classList.add('opacity-40', 'pointer-events-none');
+
+      // Populate large file details
+      const docTitleEl = document.getElementById('largeFileDocTitle');
+      const docFolderEl = document.getElementById('largeFileDocFolder');
+      const fileIdEl = document.getElementById('largeFileIdDisplay');
+      const sizeDisplayEl = document.getElementById('largeFileSizeDisplay');
+      const linkEl = document.getElementById('largeFileTelegramLink');
+      const btnTextEl = document.getElementById('largeFileBtnText');
+      const bannerDescEl = document.getElementById('largeFileBannerDesc');
+
+      if (docTitleEl) docTitleEl.innerText = title;
+      if (docFolderEl) docFolderEl.innerText = `📁 ${folder || 'Study Materials'}`;
+      if (fileIdEl) fileIdEl.innerText = `ID: ${fileId || 'Cloud Mirror'}`;
+
+      if (streamUrl) {
+        if (linkEl) linkEl.href = streamUrl;
+        const isArchive = streamUrl.includes('archive.org');
+        if (btnTextEl) {
+          btnTextEl.innerText = isArchive ? 'Open / Download via Internet Archive (24/7 Mirror)' : 'Open / Download Mirror (No Size Limit)';
+        }
+        if (bannerDescEl) {
+          bannerDescEl.innerHTML = isArchive
+            ? 'This document is mirrored on the <strong class="text-sky-300">Internet Archive</strong> for high-speed, 24/7 public access with zero size limits.'
+            : 'This file is <strong class="text-white font-semibold">larger than 20 MB</strong>, which exceeds Telegram Bot API streaming limits. You can view or download it instantly with no size restrictions.';
+        }
+      } else {
+        if (linkEl) linkEl.href = 'https://t.me/c/3771095032';
+      }
+
+      if (sizeDisplayEl) {
+        if (fileSizeBytes && fileSizeBytes > 0) {
+          const sizeMB = (fileSizeBytes / (1024 * 1024)).toFixed(1);
+          sizeDisplayEl.innerText = `${sizeMB} MB (exceeds 20 MB limit)`;
+        } else {
+          sizeDisplayEl.innerText = 'larger than 20 MB';
+        }
+      }
+
+      // Show large file container
+      if (largeFileContainer) largeFileContainer.classList.remove('hidden');
+    }
+
+    function copyCurrentFileId() {
+      if (currentViewingFileId) {
+        navigator.clipboard.writeText(currentViewingFileId).then(() => {
+          alert('Copied Telegram File ID to clipboard!');
+        }).catch(() => {
+          prompt('Telegram File ID:', currentViewingFileId);
+        });
+      }
+    }
+
+    async function loadSampleDemoPdf() {
+      const overlay = document.getElementById('viewerLoadingOverlay');
+      const statusMsg = document.getElementById('viewerStatusMessage');
+      const subStatus = document.getElementById('viewerSubStatus');
+      const canvasWrapper = document.getElementById('canvasWrapper');
+      const fallbackContainer = document.getElementById('viewerFallbackContainer');
+      const toolbar = document.getElementById('viewerToolbar');
+
+      if (fallbackContainer) fallbackContainer.classList.add('hidden');
+      if (canvasWrapper) canvasWrapper.classList.remove('hidden');
+      if (toolbar) toolbar.classList.remove('opacity-40', 'pointer-events-none');
+      if (overlay) overlay.classList.remove('opacity-0', 'pointer-events-none');
+
+      statusMsg.innerText = 'Loading test canvas stream...';
+      subStatus.innerText = 'Testing PDF.js canvas rendering engine';
+
+      try {
+        const demoUrl = 'https://raw.githubusercontent.com/mozilla/pdf.js/ba2edeae/web/compressed.tracemonkey-pldi-09.pdf';
+        const loadingTask = pdfjsLib.getDocument(demoUrl);
+        currentPdfDoc = await loadingTask.promise;
+        totalPdfPages = currentPdfDoc.numPages;
+        currentPdfPage = 1;
+        await renderPage(1);
+        overlay.classList.add('opacity-0', 'pointer-events-none');
+      } catch (e) {
+        statusMsg.innerHTML = '<span class="text-rose-400">Offline Notice</span>';
+        subStatus.innerText = 'Please ensure internet connectivity to stream directly.';
+      }
+    }
+
+    function closeSecureViewer() {
+      const modal = document.getElementById('secureViewerModal');
+      const fallbackContainer = document.getElementById('viewerFallbackContainer');
+      const largeFileContainer = document.getElementById('viewerLargeFileContainer');
+      if (!modal) return;
+      modal.classList.add('hidden');
+      if (fallbackContainer) fallbackContainer.classList.add('hidden');
+      if (largeFileContainer) largeFileContainer.classList.add('hidden');
+      currentPdfDoc = null;
+      document.body.classList.remove('overflow-hidden');
+    }
+
+    // ========================================================
+    // 8. INITIALIZATION & HARDENED CLIENT SECURITY
+    // ========================================================
+    document.addEventListener('DOMContentLoaded', () => {
+      // Step 1: Enforce Security Bouncer
+      if (checkSession()) {
+        updateSessionTimer();
+        setInterval(updateSessionTimer, 30000);
+        fetchLiveCatalog();
+      }
+
+      // Step 2: Global '/' shortcut to focus Google-like search bar
+      document.addEventListener('keydown', e => {
+        const searchInput = document.getElementById('searchInput');
+        if (e.key === '/' && document.activeElement !== searchInput) {
+          e.preventDefault();
+          searchInput.focus();
+        }
+      });
+
+      // Step 3: Block Right-Click Context Menu on entire page & viewer
+      document.addEventListener('contextmenu', e => {
+        e.preventDefault();
+        return false;
+      });
+
+      // Step 4: Block Save, Print, View Source & DevTools Keyboard Shortcuts
+      document.addEventListener('keydown', e => {
+        const modal = document.getElementById('secureViewerModal');
+        if (e.key === 'Escape' && modal && !modal.classList.contains('hidden')) {
+          closeSecureViewer();
+          return;
+        }
+
+        // Block Ctrl+P / Cmd+P (Print)
+        if ((e.ctrlKey || e.metaKey) && (e.key === 'p' || e.key === 'P')) {
+          e.preventDefault();
+          return false;
+        }
+
+        // Block Ctrl+S / Cmd+S (Save)
+        if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) {
+          e.preventDefault();
+          return false;
+        }
+
+        // Block Ctrl+U / Cmd+U (View Source)
+        if ((e.ctrlKey || e.metaKey) && (e.key === 'u' || e.key === 'U')) {
+          e.preventDefault();
+          return false;
+        }
+
+        // Block F12 (DevTools)
+        if (e.key === 'F12') {
+          e.preventDefault();
+          return false;
+        }
+
+        // Block Ctrl+Shift+I / Cmd+Option+I (Inspect)
+        if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'I' || e.key === 'i' || e.key === 'C' || e.key === 'c')) {
+          e.preventDefault();
+          return false;
+        }
+      });
+    });
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,437 @@
+const fs = require('fs');
+
+const mainFolderId = '1BKzQ6ZxykDJIdNh0sB4I02w0e6SlYRql';
+
+// Map of key folder IDs and secure preview endpoints
+const folderMap = {
+  main: {
+    id: mainFolderId,
+    name: 'ICSE PoDha STUDY MATERIALS',
+    previewUrl: `https://drive.google.com/embeddedfolderview?id=${mainFolderId}#grid`
+  },
+  sections: {
+    allBooks: {
+      id: '1Y0tdD3VvS_5ggB6y0f5z9R0ARWjUzUZ2',
+      name: 'ALL BOOKS & SAMPLE PAPERS',
+      previewUrl: 'https://drive.google.com/embeddedfolderview?id=1Y0tdD3VvS_5ggB6y0f5z9R0ARWjUzUZ2#grid',
+      subfolders: {
+        arihant: { id: '1EgSDaLq9BDyESycW-fxqCwBSQNeQYo3X', name: 'Arihant Sample Papers 2024-2025', previewUrl: 'https://drive.google.com/embeddedfolderview?id=1EgSDaLq9BDyESycW-fxqCwBSQNeQYo3X#grid' },
+        ebooks: { id: '1DeY25rI9PxKc1NLi4zqQDbkhSiIH63qB', name: 'E-Books & Handbooks', previewUrl: 'https://drive.google.com/embeddedfolderview?id=1DeY25rI9PxKc1NLi4zqQDbkhSiIH63qB#grid' },
+        educart: { id: '1qFJFDZEG4x81WTGYQKY9HqINNnyfQFyN', name: 'Educart 40 Sample Papers Vol 1 & 2', previewUrl: 'https://drive.google.com/embeddedfolderview?id=1qFJFDZEG4x81WTGYQKY9HqINNnyfQFyN#grid' },
+        goyal: { id: '17VIie1C_v364SPOmX2y9k4eBlAajPg2i', name: 'Goyal Brothers Geography Class 10', previewUrl: 'https://drive.google.com/embeddedfolderview?id=17VIie1C_v364SPOmX2y9k4eBlAajPg2i#grid' },
+        oswaal: { id: '1exlU5jrdyNg-rO1U0DBNGRbzoCh7yqdG', name: 'Oswaal Chapterwise Books & MCQs', previewUrl: 'https://drive.google.com/embeddedfolderview?id=1exlU5jrdyNg-rO1U0DBNGRbzoCh7yqdG#grid' },
+        pwEndgame: { id: '1sf_OShS246AsOE2zSm5yGWvUTihXC64h', name: 'PW Endgame Notes', previewUrl: 'https://drive.google.com/file/d/1sf_OShS246AsOE2zSm5yGWvUTihXC64h/preview' },
+        vatsal: { id: '1a9m7LY72_PQALDLSjqpv3d47oNWvnC4K', name: 'Vatsal Handbook Series', previewUrl: 'https://drive.google.com/embeddedfolderview?id=1a9m7LY72_PQALDLSjqpv3d47oNWvnC4K#grid' }
+      }
+    },
+    backbencher: {
+      id: '1Rqfbx7CwCJzAeUefBjYIT54EJ8nV-UGh',
+      name: 'BACKBENCHER / SPORTSPERSON (Last-Minute High-Yield)',
+      previewUrl: 'https://drive.google.com/embeddedfolderview?id=1Rqfbx7CwCJzAeUefBjYIT54EJ8nV-UGh#grid',
+      subjects: {
+        Biology: { id: '1FeF9692B5z8M1dYLyGZwE26TRUY-k-TG', previewUrl: 'https://drive.google.com/embeddedfolderview?id=1FeF9692B5z8M1dYLyGZwE26TRUY-k-TG#grid' },
+        Chemistry: { id: '1yy2AMPFovPXAN5eExl8vxpx5angj5KUU', previewUrl: 'https://drive.google.com/embeddedfolderview?id=1yy2AMPFovPXAN5eExl8vxpx5angj5KUU#grid' },
+        'Computer Applications': { id: '1EycOmvpW_PbR_2ELxW2R_Ef7rmw1y7hW', previewUrl: 'https://drive.google.com/embeddedfolderview?id=1EycOmvpW_PbR_2ELxW2R_Ef7rmw1y7hW#grid' },
+        'English Language (EP1)': { id: '1XlOS6I-6BMZ0eqGI9AJA5bv1eZlfkMnp', previewUrl: 'https://drive.google.com/embeddedfolderview?id=1XlOS6I-6BMZ0eqGI9AJA5bv1eZlfkMnp#grid' },
+        'English Literature (EP2)': { id: '1l9MzRpgY9tppi0wwOX3hFrNyXrHWJ3sv', previewUrl: 'https://drive.google.com/embeddedfolderview?id=1l9MzRpgY9tppi0wwOX3hFrNyXrHWJ3sv#grid' },
+        Geography: { id: '12IQ0KCOT9GEs0YA6rn_ThehEqlc9BQai', previewUrl: 'https://drive.google.com/embeddedfolderview?id=12IQ0KCOT9GEs0YA6rn_ThehEqlc9BQai#grid' },
+        'History & Civics': { id: '1TFI39NwlhDjtPBBJZY78iE3Nsjc9RJdO', previewUrl: 'https://drive.google.com/embeddedfolderview?id=1TFI39NwlhDjtPBBJZY78iE3Nsjc9RJdO#grid' },
+        Mathematics: { id: '1b7X8yJaecMSVf6EO_UPoWoUja5MhHOOM', previewUrl: 'https://drive.google.com/embeddedfolderview?id=1b7X8yJaecMSVf6EO_UPoWoUja5MhHOOM#grid' },
+        'Physical Education': { id: '1kY9r6dliRMn3gXwP47-TGMDddNaCJvVT', previewUrl: 'https://drive.google.com/embeddedfolderview?id=1kY9r6dliRMn3gXwP47-TGMDddNaCJvVT#grid' },
+        Physics: { id: '1VV4WUQ5ivGZg0SewjeVwyAXyTVj_vYWN', previewUrl: 'https://drive.google.com/embeddedfolderview?id=1VV4WUQ5ivGZg0SewjeVwyAXyTVj_vYWN#grid' },
+        'Robotics & AI': { id: '1EYoYsqsglW6iw9hyV4tRGccC7FZs9bqW', previewUrl: 'https://drive.google.com/embeddedfolderview?id=1EYoYsqsglW6iw9hyV4tRGccC7FZs9bqW#grid' }
+      }
+    },
+    curatedMaterial: {
+      id: '166eu_BO5DFmNFhvvtOOpvm40rrMHk9eJ',
+      name: 'CURATED STUDY MATERIAL',
+      previewUrl: 'https://drive.google.com/embeddedfolderview?id=166eu_BO5DFmNFhvvtOOpvm40rrMHk9eJ#grid',
+      subjects: {
+        Biology: '1lbTu84tNfGO78BFE8durdEd7P1VykgsS',
+        Chemistry: '1VoVViW5ReApNmvDs9W4fSxzjf-UgjEBo',
+        'Computer Applications': '12izu2v4E37Z3cbM3UgCAfxUJLv8zy2hI',
+        'English Language': '1vd5umUBQM-XRwANO9nYWS6PBvho96Ibg',
+        'English Literature': '1_Gx0HqvKloHvCJCSri_5EeJjS06yrzzt',
+        Geography: '175hkblqWKv02nNfUAj-OraL3ebr5gE_Y',
+        'History & Civics': '1AjbXq9OW_RHXlTv-Q82kd-57pqukDrL7',
+        Kannada: '1c2xb_eFdO8cRwUeYXV1oknzj6PWRNqKt',
+        Mathematics: '1OemWqQcXGnsEWYNppfQgjLUifeBDB7R8',
+        'Physical Education': '1JL1rfaD30QvDdmAAV6pycrBhdoczWg9R',
+        Physics: '1Gh1Go7iypnBUry7KSjk7mbylTq4pmiKF',
+        'Robotics & AI': '1g-FdIwGKjSk4wr5JGbCJwSspeA5kI8uQ'
+      }
+    },
+    topSchools: {
+      id: '1FhKT3Zw-S6ypBj6pNoC3kmrseobh2hLJ',
+      name: 'TOP SCHOOLS QUESTION PAPERS & PRELIMS',
+      previewUrl: 'https://drive.google.com/embeddedfolderview?id=1FhKT3Zw-S6ypBj6pNoC3kmrseobh2hLJ#grid',
+      schools: {
+        'Bombay Scottish': { id: '1Rpr2KWgQYdPOFNZt3JuVWJwIRRc1RGcO', previewUrl: 'https://drive.google.com/embeddedfolderview?id=1Rpr2KWgQYdPOFNZt3JuVWJwIRRc1RGcO#grid' },
+        'Cathedral & John Connon': { id: '1bD57Tl_uCQsOTm2FlrkR1y0eX9tnosEC', previewUrl: 'https://drive.google.com/embeddedfolderview?id=1bD57Tl_uCQsOTm2FlrkR1y0eX9tnosEC#grid' },
+        'Dhirubhai Ambani (DAIS)': { id: '1LEhO2kejxnCe_38ayRKr5_0lzH5PiHq6', previewUrl: 'https://drive.google.com/embeddedfolderview?id=1LEhO2kejxnCe_38ayRKr5_0lzH5PiHq6#grid' },
+        'Jamnabai Narsee (JNS)': { id: '1yCxHZchkvtGd6schOTz7qHMWq2UQoh45', previewUrl: 'https://drive.google.com/embeddedfolderview?id=1yCxHZchkvtGd6schOTz7qHMWq2UQoh45#grid' },
+        'KISA (Karnataka ICSE Schools 2026)': { id: '1cqwGVEgAK_1-qCtfRvnlKpQjm8ekFoqg', previewUrl: 'https://drive.google.com/embeddedfolderview?id=1cqwGVEgAK_1-qCtfRvnlKpQjm8ekFoqg#grid' },
+        'Pawar Public School': { id: '1ieyhyLUlZLHRYmFD5T_nRGgVyJHFxT0Y', previewUrl: 'https://drive.google.com/embeddedfolderview?id=1ieyhyLUlZLHRYmFD5T_nRGgVyJHFxT0Y#grid' },
+        'Ryan International': { id: '14POSVyG8Vab00AuuH2oBxl1k_FxyYXnB', previewUrl: 'https://drive.google.com/embeddedfolderview?id=14POSVyG8Vab00AuuH2oBxl1k_FxyYXnB#grid' },
+        'Vibgyor High': { id: '178uh2zh55kLYEcCGhDJ8TINnJRaukltp', previewUrl: 'https://drive.google.com/embeddedfolderview?id=178uh2zh55kLYEcCGhDJ8TINnJRaukltp#grid' }
+      }
+    },
+    ultimateDump: {
+      id: '1xmBetPbKl0dPlvLnscoZ6us0JQilcDse',
+      name: 'ULTIMATE ARCHIVE & MEGA DUMP',
+      previewUrl: 'https://drive.google.com/embeddedfolderview?id=1xmBetPbKl0dPlvLnscoZ6us0JQilcDse#grid'
+    }
+  }
+};
+
+// Subject Catalog with secure on-site modal viewer mapping
+const subjectsCatalog = [
+  {
+    id: 'all-books',
+    name: 'All Books & Sample Papers',
+    icon: '📖',
+    badgeColor: 'emerald',
+    description: 'Arihant 15 SQPs, Oswaal Chapterwise, Educart 40 Sample Papers, Vatsal Handbooks & PW Endgame',
+    folderPreviewUrl: 'https://drive.google.com/embeddedfolderview?id=1Y0tdD3VvS_5ggB6y0f5z9R0ARWjUzUZ2#grid',
+    counts: { totalFiles: 320, pdfs: 310, formulas: 18, cheatSheets: 25 },
+    tags: ['books', 'sample papers', 'arihant', 'oswaal', 'educart', 'vatsal', 'handbook', 'goyal', 'pw', 'endgame'],
+    sections: [
+      {
+        title: 'Arihant 15 Sample Question Papers (2025)',
+        desc: 'Complete SQP series for Physics, Chemistry, Biology, Math, Hindi, History-Civics, Geography & Computer',
+        previewUrl: 'https://drive.google.com/embeddedfolderview?id=1EgSDaLq9BDyESycW-fxqCwBSQNeQYo3X#grid'
+      },
+      {
+        title: 'Oswaal Chapterwise Books & MCQs',
+        desc: 'Physics, Chemistry, Biology, Computer Applications & History chapter question banks with solutions',
+        previewUrl: 'https://drive.google.com/embeddedfolderview?id=1exlU5jrdyNg-rO1U0DBNGRbzoCh7yqdG#grid'
+      },
+      {
+        title: 'Educart 40 Sample Papers (Vol 1 & 2)',
+        desc: 'Class 10 comprehensive sample question papers with detailed marking schemes',
+        previewUrl: 'https://drive.google.com/embeddedfolderview?id=1qFJFDZEG4x81WTGYQKY9HqINNnyfQFyN#grid'
+      },
+      {
+        title: 'Vatsal Handbooks & PW Endgame Notes',
+        desc: 'Vatsal Chemistry, Biology, Computer & Physics handbooks + PW Endgame rapid notes',
+        previewUrl: 'https://drive.google.com/embeddedfolderview?id=1a9m7LY72_PQALDLSjqpv3d47oNWvnC4K#grid'
+      }
+    ]
+  },
+  {
+    id: 'physics',
+    name: 'Physics',
+    icon: '⚡',
+    badgeColor: 'blue',
+    description: 'Mechanics, Optics, Sound, Electricity, Magnetism, Calorimetry & Modern Physics',
+    folderPreviewUrl: 'https://drive.google.com/embeddedfolderview?id=1Gh1Go7iypnBUry7KSjk7mbylTq4pmiKF#grid',
+    counts: { totalFiles: 240, pdfs: 232, formulas: 14, cheatSheets: 12 },
+    sections: [
+      {
+        title: 'Formula Sheet (with Tricks & Formulas)',
+        desc: 'Master SI units, constants, numerical formulas and shortcuts',
+        previewUrl: 'https://drive.google.com/file/d/1iICs90nqKs7-IVsLM4k1ktJP6GeUGBZK/preview'
+      },
+      {
+        title: 'Chapter Cheatsheets (Ch1 to Ch12)',
+        desc: 'Force, Machines, Refraction, Lens, Spectrum, Circuits, Calorimetry & Radioactivity',
+        previewUrl: 'https://drive.google.com/embeddedfolderview?id=1MiuXUXFyue1qKy6GwMZwb4FMEzMuaEeJ#grid'
+      },
+      {
+        title: 'List of Important Ray Diagrams',
+        desc: 'Essential ray diagrams for prisms, lenses, spectrum and circuits',
+        previewUrl: 'https://drive.google.com/file/d/1Er_H-dlI14rXyzx08RbyrL8lui9TUqOC/preview'
+      },
+      {
+        title: 'Physics Master Question Bank',
+        desc: 'Comprehensive solved numericals and theory questions',
+        previewUrl: 'https://drive.google.com/file/d/1VpV-Hj8EotpRQqgvil1QkkAK7Plp-4Ic/preview'
+      }
+    ]
+  },
+  {
+    id: 'chemistry',
+    name: 'Chemistry',
+    icon: '🧪',
+    badgeColor: 'emerald',
+    description: 'Periodic Table, Chemical Bonding, Acids & Bases, Metallurgy, Study of Compounds & Organic Chemistry',
+    folderPreviewUrl: 'https://drive.google.com/embeddedfolderview?id=1VoVViW5ReApNmvDs9W4fSxzjf-UgjEBo#grid',
+    counts: { totalFiles: 215, pdfs: 210, reactions: 35, charts: 8 },
+    sections: [
+      {
+        title: 'Study of Compounds Special Pack',
+        desc: 'HCl, NH3, HNO3, H2SO4 detailed notes, tests & observations',
+        previewUrl: 'https://drive.google.com/file/d/1e5tj_Or5OkRTEefavaTYCMuYNT0muaU1/preview'
+      },
+      {
+        title: 'Common Errors Made by Students',
+        desc: 'Exam traps in balancing equations, IUPAC names and observations',
+        previewUrl: 'https://drive.google.com/file/d/1vDCYKYtMBTr7Re_phPVfj4TxvRHCwSrv/preview'
+      },
+      {
+        title: 'Practical Observations & Flame Tests',
+        desc: 'Precipitates, gas evolution tests, color changes and differentiate tables',
+        previewUrl: 'https://drive.google.com/embeddedfolderview?id=1t01YsZN-vG0sJvAGRorX82DlwSZlFGo4#grid'
+      },
+      {
+        title: 'Chemistry Mind Maps & Revision',
+        desc: 'Visual chapter maps for fast memory recall before exam',
+        previewUrl: 'https://drive.google.com/embeddedfolderview?id=1vnDg71SquOn7w2qmbIu5P8uRMOhXvMqr#grid'
+      }
+    ]
+  },
+  {
+    id: 'biology',
+    name: 'Biology',
+    icon: '🧬',
+    badgeColor: 'green',
+    description: 'Cell Cycle, Genetics, Absorption by Roots, Circulatory, Excretory, Nervous & Endocrine Systems',
+    folderPreviewUrl: 'https://drive.google.com/embeddedfolderview?id=1lbTu84tNfGO78BFE8durdEd7P1VykgsS#grid',
+    counts: { totalFiles: 310, pdfs: 285, diagrams: 42, pyqs: 12 },
+    sections: [
+      {
+        title: 'Biology - Important Diagrams Guide',
+        desc: 'High-res labeled diagrams: cell division, heart, nephron, ear & eye',
+        previewUrl: 'https://drive.google.com/file/d/1eatDl813FFvaPLw6cAv2gvVLpNr00XoI/preview'
+      },
+      {
+        title: 'Location & Functions Directory',
+        desc: 'Comprehensive glossary of all glands, organs, enzymes and hormones',
+        previewUrl: 'https://drive.google.com/file/d/1brWa0VOhmGcrxUU4czKizVhMqNhIlrY_/preview'
+      },
+      {
+        title: 'Full Form, Chemicals & Logical Sequence',
+        desc: 'Vital terms, definitions, hormones and biological sequences',
+        previewUrl: 'https://drive.google.com/file/d/1OUfVrZAADVvETaoKBS4dAIhXJqwwgasJ/preview'
+      },
+      {
+        title: 'Important Picture Questions',
+        desc: 'Diagram-based question sets from top ICSE board examiners',
+        previewUrl: 'https://drive.google.com/file/d/1Z-BCnYcMe8gvYU_RwEo5vWLi3_G4iYaI/preview'
+      }
+    ]
+  },
+  {
+    id: 'math',
+    name: 'Mathematics',
+    icon: '📐',
+    badgeColor: 'amber',
+    description: 'Commercial Math, Algebra, Geometry, Mensuration, Trigonometry, Statistics & Probability',
+    folderPreviewUrl: 'https://drive.google.com/embeddedfolderview?id=1OemWqQcXGnsEWYNppfQgjLUifeBDB7R8#grid',
+    counts: { totalFiles: 195, pdfs: 190, formulaSheets: 6, solutions: 48 },
+    sections: [
+      {
+        title: 'Must Do Questions (VVIMP)',
+        desc: 'High-probability examination questions across all 10th chapters',
+        previewUrl: 'https://drive.google.com/file/d/1bDRwAoiPTSg_JwpA79UEQT5vesNPd5Hs/preview'
+      },
+      {
+        title: 'Maths - 100 MCQs Practice Set',
+        desc: 'Objective questions covering GST, Banking, Matrices, Quadratic & Trig',
+        previewUrl: 'https://drive.google.com/file/d/1IUBdk0yr2KHUxnQih3RP2Qn2BWcbZ6EJ/preview'
+      },
+      {
+        title: 'Chapterwise Question Bank',
+        desc: 'Categorized practice sets for similarity, circles, mensuration & ogives',
+        previewUrl: 'https://drive.google.com/file/d/1oRRYQSiAOf8AUrBrPl6cdVnxm49gpgl7/preview'
+      },
+      {
+        title: 'Graph Sheets & Competency Solutions',
+        desc: 'Model graphs for ogive medians, quartiles and histograms',
+        previewUrl: 'https://drive.google.com/file/d/1IqhaT3hrkZJ6tzr7Kdh5N7Nkh7-Q3RZH/preview'
+      }
+    ]
+  },
+  {
+    id: 'history-civics',
+    name: 'History & Civics',
+    icon: '🏛️',
+    badgeColor: 'rose',
+    description: 'Indian National Movement, Contemporary World Wars, UNO, Parliament, Executive & Judiciary',
+    folderPreviewUrl: 'https://drive.google.com/embeddedfolderview?id=1AjbXq9OW_RHXlTv-Q82kd-57pqukDrL7#grid',
+    counts: { totalFiles: 175, pdfs: 172, timelines: 8, mindmaps: 15 },
+    sections: [
+      {
+        title: 'History & Civics Notes 2026 (Sagar Bechum)',
+        desc: 'Precision notes structured strictly according to the CISCE syllabus',
+        previewUrl: 'https://drive.google.com/file/d/1NQXMA37YpfCnTEpK43DRuPY1pL4R1usS/preview'
+      },
+      {
+        title: 'History Important MCQs (Inter-School)',
+        desc: 'Curated multiple-choice questions from premier Mumbai school papers',
+        previewUrl: 'https://drive.google.com/file/d/1gUFTpnYO4gI0t1bF9bZ9bYCQe6UMxIIY/preview'
+      },
+      {
+        title: 'Comprehensive Rapid Revision Pack',
+        desc: '1857 Revolt, Gandhi Era, INA, World Wars I & II, UNO & Judiciary',
+        previewUrl: 'https://drive.google.com/file/d/1PiC-Y3NbpjhI_sr_q1Q-1n-VbRxGpTXF/preview'
+      },
+      {
+        title: 'History & Civics Chapter Mind Maps',
+        desc: 'Visual timeline maps for constitutional articles and war treaties',
+        previewUrl: 'https://drive.google.com/embeddedfolderview?id=1pl7Pg3wLZGS594ybbKsxBIGJXw6y0X-k#grid'
+      }
+    ]
+  },
+  {
+    id: 'geography',
+    name: 'Geography',
+    icon: '🌍',
+    badgeColor: 'teal',
+    description: 'Topography (Sheet Reading), Map of India, Climate, Soils, Natural Vegetation, Water & Minerals',
+    folderPreviewUrl: 'https://drive.google.com/embeddedfolderview?id=175hkblqWKv02nNfUAj-OraL3ebr5gE_Y#grid',
+    counts: { totalFiles: 220, pdfs: 195, toposheets: 18, maps: 12 },
+    sections: [
+      {
+        title: 'Complete Topography Book & Guide',
+        desc: 'Contour reading, grid references, drainage patterns & calculation tricks',
+        previewUrl: 'https://drive.google.com/file/d/1R8dZiVF9hKUA0_T4TYXvnI-G1kIQqHSI/preview'
+      },
+      {
+        title: 'Map Pointing of India (2010 to 2024)',
+        desc: '15 years of board-tested rivers, mountains, soils and towns',
+        previewUrl: 'https://drive.google.com/file/d/1NXlrIvZQ0STchPXMirxnPsIhF_3vzaQX/preview'
+      },
+      {
+        title: 'Ultimate Toposheet Practice Sets',
+        desc: 'Sample practice sheets and 20-mark board-style question papers',
+        previewUrl: 'https://drive.google.com/file/d/1nJCkTUaeWs18JtzgPWDsRhrcvoIjs-uQ/preview'
+      },
+      {
+        title: 'Toposheets Collection (High-Res Maps)',
+        desc: 'High-resolution scan sheets (Topo 1, Topo 2, Topo 3, Topo 4, 23, 25)',
+        previewUrl: 'https://drive.google.com/embeddedfolderview?id=1o-ImssCJwVs_xxSRiq6G92mnYoZaOK_t#grid'
+      }
+    ]
+  },
+  {
+    id: 'computer',
+    name: 'Computer Applications',
+    icon: '💻',
+    badgeColor: 'violet',
+    description: 'Java OOPs Concepts, Strings, Arrays, Functions, Constructors, Output Questions & 20-Year Board Papers',
+    folderPreviewUrl: 'https://drive.google.com/embeddedfolderview?id=12izu2v4E37Z3cbM3UgCAfxUJLv8zy2hI#grid',
+    counts: { totalFiles: 180, pdfs: 178, programs: 65, pastPapers: 20 },
+    sections: [
+      {
+        title: 'Computer Applications Ultimate Cheatsheet',
+        desc: 'Wrapper classes, String functions, Math class methods & ASCII values',
+        previewUrl: 'https://drive.google.com/file/d/1IFkWUcMic2YPqUDTWwS6ml5suafTjEWY/preview'
+      },
+      {
+        title: 'Common Errors & Exam Traps',
+        desc: 'Loop edge cases, off-by-one errors, typecasting and array bounds',
+        previewUrl: 'https://drive.google.com/file/d/10CJUf5mR0B9JHmk9-X5UtsoL02BIUhh3/preview'
+      },
+      {
+        title: 'Arrays & Strings Question Bank',
+        desc: 'Linear search, binary search, bubble sort and 2D matrix programs',
+        previewUrl: 'https://drive.google.com/file/d/1z0MNA-KCE5E81SpY0WPne-4PJLp1lhWh/preview'
+      },
+      {
+        title: '20-Year Board Papers (2005 - 2025)',
+        desc: 'Authentic solved board examination papers spanning two decades',
+        previewUrl: 'https://drive.google.com/embeddedfolderview?id=1dixit56tm_9pLEVM0vHPHRgpdNeyHQ6z#grid'
+      }
+    ]
+  },
+  {
+    id: 'english',
+    name: 'English Language & Literature',
+    icon: '📚',
+    badgeColor: 'sky',
+    description: 'Julius Caesar (Acts 3, 4, 5), Treasure Chest (Poems & Short Stories), Essays & Grammar',
+    folderPreviewUrl: 'https://drive.google.com/embeddedfolderview?id=1_Gx0HqvKloHvCJCSri_5EeJjS06yrzzt#grid',
+    counts: { totalFiles: 280, pdfs: 240, audio: 3, video: 5, manga: 1 },
+    sections: [
+      {
+        title: 'Julius Caesar Manga Edition & Notes',
+        desc: 'Illustrated manga guide, act-wise breakdown and extract questions',
+        previewUrl: 'https://drive.google.com/embeddedfolderview?id=1_Gx0HqvKloHvCJCSri_5EeJjS06yrzzt#grid'
+      },
+      {
+        title: 'Treasure Chest Poems & Stories Vault',
+        desc: 'Handwritten summaries, critical analyses and character sketches',
+        previewUrl: 'https://drive.google.com/embeddedfolderview?id=1_Gx0HqvKloHvCJCSri_5EeJjS06yrzzt#grid'
+      },
+      {
+        title: 'English Language Formats (Paper 1)',
+        desc: 'Essay writing formats, formal/informal letters, notice & email templates',
+        previewUrl: 'https://drive.google.com/embeddedfolderview?id=1vd5umUBQM-XRwANO9nYWS6PBvho96Ibg#grid'
+      }
+    ]
+  },
+  {
+    id: 'robotics-ai',
+    name: 'Robotics and AI (66)',
+    icon: '🤖',
+    badgeColor: 'purple',
+    description: 'Class 10 Robotics & Artificial Intelligence (66) - Primer, Algorithms, Sensors & PPMS Curated Notes',
+    folderPreviewUrl: 'https://drive.google.com/embeddedfolderview?id=1g-FdIwGKjSk4wr5JGbCJwSspeA5kI8uQ#grid',
+    counts: { totalFiles: 60, pdfs: 58, mcqs: 100, textbooks: 3 },
+    sections: [
+      {
+        title: 'Official Board Primer & Syllabus',
+        desc: 'CISCE Subject Code 66 Primer + Springer Handbook of Robotics',
+        previewUrl: 'https://drive.google.com/embeddedfolderview?id=1g-FdIwGKjSk4wr5JGbCJwSspeA5kI8uQ#grid'
+      },
+      {
+        title: '100 MCQs & PPMS Concepts',
+        desc: 'High-yield objective question bank with detailed answers',
+        previewUrl: 'https://drive.google.com/embeddedfolderview?id=1g-FdIwGKjSk4wr5JGbCJwSspeA5kI8uQ#grid'
+      }
+    ]
+  },
+  {
+    id: 'top-schools',
+    name: 'Top Schools Prelims Vault',
+    icon: '🏆',
+    badgeColor: 'amber',
+    description: 'Premier Mumbai & National ICSE Schools Preliminary Exam Question Papers with Model Answer Keys',
+    folderPreviewUrl: 'https://drive.google.com/embeddedfolderview?id=1FhKT3Zw-S6ypBj6pNoC3kmrseobh2hLJ#grid',
+    counts: { totalFiles: 350, schools: 12, years: '2023-2026' },
+    sections: [
+      {
+        title: 'Bombay Scottish School Prelims',
+        desc: 'Mid Term, Term 1, Term 2 and Prelims with official answer keys',
+        previewUrl: 'https://drive.google.com/embeddedfolderview?id=1Rpr2KWgQYdPOFNZt3JuVWJwIRRc1RGcO#grid'
+      },
+      {
+        title: 'The Cathedral and John Connon School',
+        desc: 'Prelim 1 & Prelim 2 papers across science, math and humanities',
+        previewUrl: 'https://drive.google.com/embeddedfolderview?id=1bD57Tl_uCQsOTm2FlrkR1y0eX9tnosEC#grid'
+      },
+      {
+        title: 'KISA Association 2026 Board Prelims',
+        desc: 'Karnataka ICSE schools joint board exam question papers with keys',
+        previewUrl: 'https://drive.google.com/embeddedfolderview?id=1cqwGVEgAK_1-qCtfRvnlKpQjm8ekFoqg#grid'
+      },
+      {
+        title: 'DAIS, JNS, Pawar Public & Vibgyor',
+        desc: 'Complete papers with answer keys and evaluation schemes',
+        previewUrl: 'https://drive.google.com/embeddedfolderview?id=1FhKT3Zw-S6ypBj6pNoC3kmrseobh2hLJ#grid'
+      }
+    ]
+  }
+];
+
+const database = {
+  meta: {
+    folderName: 'ICSE PoDha STUDY MATERIALS',
+    mainFolderId: mainFolderId,
+    previewUrl: `https://drive.google.com/embeddedfolderview?id=${mainFolderId}#grid`,
+    securityMode: 'Secure On-Site Viewer Modal (Preview Mode)',
+    downloadRestricted: true,
+    rightClickDisabled: true,
+    indexedAt: new Date().toISOString(),
+    totalPdfsIndexed: 2086,
+    totalAudioVideoFiles: 8,
+    totalDiagramsAndImages: 81,
+    totalSubfolders: 482
+  },
+  folderMap,
+  subjectsCatalog
+};
+
+fs.writeFileSync('c:/Users/User/POD2/resources.json', JSON.stringify(database, null, 2));
+console.log('Successfully updated resources.json with secure preview URLs!');

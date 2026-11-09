@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Access Verification</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            portal: {
+              card: '#1e2538',
+              cardBorder: '#2e384d',
+              innerBox: '#262f44',
+              noteBox: '#2b3345',
+              accent: '#6371f2',
+              accentHover: '#5260e4'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    .font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+  </style>
+</head>
+<body class="bg-slate-900 min-h-screen text-slate-100 flex flex-col antialiased selection:bg-indigo-500 selection:text-white">
+
+  <!-- Top Navigation Bar -->
+  <header class="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 w-full mb-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <!-- Logo & Brand -->
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/20 text-white font-black text-lg">
+          P
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="font-bold text-white text-base tracking-tight">ICSE PoDha</span>
+            <span class="bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 text-[10px] font-semibold px-2 py-0.5 rounded-full">Class 10</span>
+          </div>
+          <p class="text-xs text-slate-400 hidden sm:block">Curated Study Materials & Resource Vault</p>
+        </div>
+      </div>
+
+      <!-- Navigation & Mode Switcher Tabs -->
+      <div class="flex items-center bg-slate-950/70 p-1 rounded-xl border border-slate-800 text-xs font-medium">
+        <button 
+          id="tabDashboard" 
+          onclick="switchTab('dashboard')" 
+          class="px-3.5 py-1.5 rounded-lg text-slate-400 hover:text-white transition-all duration-200 flex items-center gap-1.5"
+        >
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path>
+          </svg>
+          Resource Vault
+        </button>
+        <button 
+          id="tabVerification" 
+          onclick="switchTab('verification')" 
+          class="px-3.5 py-1.5 rounded-lg transition-all duration-200 bg-portal-accent text-white shadow-sm flex items-center gap-1.5"
+        >
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+          </svg>
+          Verification Portal
+          <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+        </button>
+      </div>
+
+      <!-- Session State Info -->
+      <div class="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-amber-500/10 border border-amber-500/25 rounded-xl text-amber-400 text-xs font-semibold">
+        <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+        <span>Verification Required</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <div class="w-full max-w-md mx-auto space-y-6 px-4 pb-12">
+
+    <!-- Card 1: Access Verification -->
+    <div class="bg-portal-card border border-portal-cardBorder/60 rounded-2xl p-6 sm:p-7 shadow-2xl backdrop-blur-sm transition-all duration-300">
+      
+      <!-- Header -->
+      <div class="text-center space-y-2">
+        <h1 class="text-2xl font-bold tracking-tight text-white">
+          Access Verification
+        </h1>
+        <p class="text-sm text-slate-400 leading-relaxed max-w-sm mx-auto">
+          Your 24-hour access period has ended. Please verify again to continue using the site.
+        </p>
+      </div>
+
+      <!-- Token Display Box -->
+      <div class="mt-6">
+        <div class="relative flex items-center justify-between bg-portal-innerBox border border-slate-700/50 rounded-xl px-4 py-3 shadow-inner group transition-all duration-200 hover:border-slate-600/80">
+          <span id="tokenText" class="font-mono text-sm sm:text-base text-slate-200 tracking-wider truncate select-all">61c3cc9a1520bb0bcf1f2254</span>
+          
+          <!-- Copy Button -->
+          <button 
+            id="copyBtn"
+            onclick="copyToken()"
+            title="Copy token to clipboard"
+            class="ml-3 p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-portal-accent/50 shrink-0"
+            aria-label="Copy token"
+          >
+            <!-- Clipboard Icon -->
+            <svg id="copyIcon" class="w-5 h-5 text-slate-400 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
+            </svg>
+            <!-- Checkmark Icon (Hidden by default) -->
+            <svg id="checkIcon" class="w-5 h-5 text-emerald-400 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path>
+            </svg>
+          </button>
+
+          <!-- Toast Tooltip -->
+          <span id="copyTooltip" class="absolute -top-8 right-2 bg-slate-950 text-emerald-400 text-xs font-medium py-1 px-2.5 rounded shadow-lg border border-slate-700/80 opacity-0 pointer-events-none transition-opacity duration-200">
+            Copied!
+          </span>
+        </div>
+      </div>
+
+      <!-- Explanatory Note Box -->
+      <div class="mt-5 bg-portal-noteBox/80 border border-slate-700/40 rounded-xl p-4">
+        <p class="text-xs sm:text-sm text-slate-300 text-center leading-relaxed font-normal">
+          To keep this free service running, we require periodic verification. Click the button below to start a new verification.
+        </p>
+      </div>
+
+      <!-- Last Successful Verification Timestamp -->
+      <div class="mt-4 text-center">
+        <span class="text-xs text-slate-400">
+          Last successful verification: <span id="lastVerifiedText" class="text-slate-300 font-medium">5 Nov 2026, 09:32</span>
+        </span>
+      </div>
+
+      <!-- Action Button -->
+      <div class="mt-5">
+        <button 
+          id="verifyBtn" 
+          onclick="handleVerify()"
+          class="w-full py-3.5 px-6 bg-portal-accent hover:bg-portal-accentHover text-white font-semibold rounded-xl shadow-lg shadow-portal-accent/25 hover:shadow-portal-accent/40 active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2 group"
+        >
+          <span id="btnText">Start Verification</span>
+          <svg id="arrowIcon" class="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+          </svg>
+          <!-- Loading Spinner (Hidden by default) -->
+          <svg id="spinnerIcon" class="w-5 h-5 animate-spin hidden text-white" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+          </svg>
+        </button>
+      </div>
+
+    </div>
+
+    <!-- Card 2: Tutorial / Instructions (Matching Reference UI) -->
+    <div class="bg-portal-card border border-portal-cardBorder/60 rounded-2xl p-6 sm:p-7 shadow-2xl backdrop-blur-sm transition-all duration-300">
+      <h2 class="text-lg font-bold text-center text-white leading-snug">
+        Watch This Video Given Below to Know How To Verify
+      </h2>
+
+      <!-- Video Mock Player -->
+      <div class="mt-4 relative rounded-xl overflow-hidden bg-slate-950 border border-slate-700/60 aspect-video flex flex-col justify-between group shadow-inner">
+        <!-- Video Screen / Thumbnail Backdrop -->
+        <div class="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-900/60 to-slate-950/80 flex items-center justify-center">
+          <!-- Play Button Overlay -->
+          <button 
+            id="playButton"
+            onclick="togglePlayMock()"
+            class="w-14 h-14 rounded-full bg-portal-accent/90 hover:bg-portal-accent text-white flex items-center justify-center shadow-lg transition-transform hover:scale-110 active:scale-95 focus:outline-none"
+            aria-label="Play tutorial video"
+          >
+            <svg id="playIcon" class="w-7 h-7 ml-1" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M8 5v14l11-7z"></path>
+            </svg>
+            <svg id="pauseIcon" class="w-6 h-6 hidden" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"></path>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Top bar mockup -->
+        <div class="relative z-10 p-3 flex justify-between items-center text-xs text-slate-400">
+          <span class="flex items-center gap-1.5 font-medium text-slate-300">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            Tutorial Guide
+          </span>
+          <span class="bg-slate-900/80 px-2 py-0.5 rounded text-[11px] font-mono">01:45</span>
+        </div>
+
+        <!-- Bottom Timeline Slider Mock -->
+        <div class="relative z-10 p-3 w-full space-y-1">
+          <div class="w-full bg-slate-700/70 h-1.5 rounded-full overflow-hidden relative cursor-pointer">
+            <div id="videoProgress" class="bg-portal-accent h-full w-1/4 rounded-full transition-all duration-300"></div>
+          </div>
+          <div class="flex justify-between text-[10px] text-slate-400 font-mono">
+            <span>0:26</span>
+            <span>1:45</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Video Explanatory Note -->
+      <div class="mt-4 text-xs text-slate-400 leading-relaxed text-center">
+        <span class="text-slate-300 font-medium">Note:</span> Verification involves completing a quick task (like watching an ad) to help support this free service. After completing, you'll get 24-hour access to all resources.
+      </div>
+    </div>
+
+    <!-- Footer branding / credit -->
+    <div class="text-center text-xs text-slate-500 pb-4">
+      Secure Verification System &bull; Protected Access
+    </div>
+
+  </div>
+
+  <!-- Interactive JavaScript -->
+  <script>
+    // ========================================================
+    // AD SHORTENER CONFIGURATION
+    // ========================================================
+    // ShrinkMe / GPLinks ad shortener URL
+    // Destination target configured on the shortener dashboard:
+    //   http://localhost:3000/verify.html?verified=true  (dev)
+    //   https://yourdomain.com/verify.html?verified=true (prod)
+    const AD_SHORTENER_URL = 'https://shrinkme.click/8LG4';
+
+    // ========================================================
+    // INCOMING VERIFICATION HANDLER (?verified=true callback)
+    // ========================================================
+    // Runs immediately: if user just completed the ad steps and
+    // returned with ?verified=true, grant 24h access and redirect.
+    (function handleVerifiedReturn() {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('verified') === 'true') {
+        // Step 1: Calculate 24-hour expiration timestamp
+        const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
+        const now = Date.now();
+        const expiryTimestamp = now + TWENTY_FOUR_HOURS_MS;
+
+        // Step 2: Persist token expiry and verification time in localStorage
+        localStorage.setItem('podha_resources_expiry', expiryTimestamp.toString());
+        localStorage.setItem('podha_resources_verified_at', now.toString());
+
+        // Step 3: Clean the URL (remove ?verified=true) without triggering a reload
+        window.history.replaceState({}, document.title, window.location.pathname);
+
+        // Step 4: Redirect to the resource vault
+        window.location.replace('index.html');
+        return; // Stop further script execution on this page
+      }
+    })();
+
+    // Copy token to clipboard with fallback
+    function copyToken() {
+      const token = document.getElementById('tokenText').innerText;
+      const copyIcon = document.getElementById('copyIcon');
+      const checkIcon = document.getElementById('checkIcon');
+      const tooltip = document.getElementById('copyTooltip');
+
+      const showFeedback = () => {
+        copyIcon.classList.add('hidden');
+        checkIcon.classList.remove('hidden');
+        tooltip.classList.remove('opacity-0');
+        tooltip.classList.add('opacity-100');
+
+        setTimeout(() => {
+          copyIcon.classList.remove('hidden');
+          checkIcon.classList.add('hidden');
+          tooltip.classList.remove('opacity-100');
+          tooltip.classList.add('opacity-0');
+        }, 2000);
+      };
+
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(token).then(showFeedback).catch(() => fallbackCopy(token, showFeedback));
+      } else {
+        fallbackCopy(token, showFeedback);
+      }
+    }
+
+    function fallbackCopy(text, callback) {
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      textArea.style.position = "fixed";
+      textArea.style.left = "-999999px";
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        callback();
+      } catch (err) {
+        console.error('Fallback copy failed', err);
+      }
+      document.body.removeChild(textArea);
+    }
+
+    // Verify button handler — redirects to ShrinkMe ad shortener
+    let isVerifying = false;
+    function handleVerify() {
+      if (isVerifying) return;
+      isVerifying = true;
+
+      const btnText = document.getElementById('btnText');
+      const arrowIcon = document.getElementById('arrowIcon');
+      const spinnerIcon = document.getElementById('spinnerIcon');
+      const verifyBtn = document.getElementById('verifyBtn');
+
+      // Visual loading state with spinner
+      btnText.innerText = 'Redirecting to Verification...';
+      arrowIcon.classList.add('hidden');
+      spinnerIcon.classList.remove('hidden');
+      verifyBtn.classList.add('opacity-90', 'cursor-not-allowed');
+
+      // Redirect to ad shortener after a brief delay for UX
+      setTimeout(() => {
+        window.location.href = AD_SHORTENER_URL;
+      }, 800);
+    }
+
+    // Check on page load if user already has an active session
+    document.addEventListener('DOMContentLoaded', () => {
+      const expiry = localStorage.getItem('podha_resources_expiry');
+      const verifiedAt = localStorage.getItem('podha_resources_verified_at');
+      const lastVerifiedText = document.getElementById('lastVerifiedText');
+
+      // Update formatted last verified date if available
+      if (verifiedAt && lastVerifiedText) {
+        const vDate = new Date(Number(verifiedAt));
+        lastVerifiedText.innerText = vDate.toLocaleString('en-IN', {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+      }
+
+      // If session is already valid, auto-redirect to resource dashboard
+      if (expiry && Date.now() < Number(expiry)) {
+        const btnText = document.getElementById('btnText');
+        const arrowIcon = document.getElementById('arrowIcon');
+        const spinnerIcon = document.getElementById('spinnerIcon');
+        const verifyBtn = document.getElementById('verifyBtn');
+
+        btnText.innerText = 'Active Session Found! Entering...';
+        arrowIcon.classList.add('hidden');
+        spinnerIcon.classList.remove('hidden');
+        verifyBtn.classList.add('opacity-90', 'cursor-not-allowed');
+
+        setTimeout(() => {
+          window.location.href = 'index.html';
+        }, 800);
+      }
+    });
+
+    // Switch Tab Handler
+    function switchTab(tab) {
+      if (tab === 'dashboard') {
+        window.location.href = 'index.html';
+      }
+    }
+
+    // Tutorial Video Play/Pause Toggle Simulation
+    let isPlaying = false;
+    let progressInterval = null;
+    let progressVal = 25;
+
+    function togglePlayMock() {
+      const playIcon = document.getElementById('playIcon');
+      const pauseIcon = document.getElementById('pauseIcon');
+      const progress = document.getElementById('videoProgress');
+
+      isPlaying = !isPlaying;
+
+      if (isPlaying) {
+        playIcon.classList.add('hidden');
+        pauseIcon.classList.remove('hidden');
+        progressInterval = setInterval(() => {
+          progressVal = (progressVal + 2) % 100;
+          progress.style.width = progressVal + '%';
+        }, 300);
+      } else {
+        playIcon.classList.remove('hidden');
+        pauseIcon.classList.add('hidden');
+        clearInterval(progressInterval);
+      }
+    }
+  </script>
+</body>
+</html>

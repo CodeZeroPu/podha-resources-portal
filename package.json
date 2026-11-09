@@ -1,0 +1,802 @@
+{
+  "name": "podha-resources-portal",
+  "version": "2.0.0",
+  "description": "ICSE PoDha Class 10 Study Resource Portal - Live Telegram Bot Catalog & Search Engine",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "sync": "python sync_library.py"
+  },
+  "keywords": [
+    "icse",
+    "class-10",
+    "telegram-bot",
+    "study-portal",
+    "pdf-viewer"
+  ],
+  "author": "PoDha Resources Team",
+  "license": "ISC"
+}
+```[cite: 4]
+
+---
+
+### `server.js`
+```javascript
+/**
+ * ICSE PoDha Study Portal - Live API & Web Server
+ * 
+ * Provides:
+ *  - GET /api/files          : Live flattened list of all files uploaded via Telegram bot
+ *  - GET /api/stream/:fileId : Secure streaming proxy for Telegram PDFs with CORS & Range support
+ *  - GET /api/resolve/:fileId: Resolves Telegram file path & metadata with caching
+ *  - GET /api/catalog        : Live hierarchical catalog from catalog.json
+ *  - GET /api/stats          : Summary statistics (total files, folders, subjects)
+ *  - POST /api/files         : Ingest new files uploaded via Telegram bot in real-time
+ *  - Static file serving     : index.html, verify.html, catalog.json, etc.
+ */
+
+const http = require('http');
+const https = require('https');
+const fs = require('fs');
+const path = require('path');
+const url = require('url');
+
+const PORT = process.env.PORT || 3000;
+const CATALOG_PATH = path.join(__dirname, 'catalog.json');
+
+// Telegram Bot Configuration (Kept secure on backend, never exposed to client)
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '9084126620:AAFJDD7pBQTvCzJMJ2zUAKZO596Qn-ce0lE';
+const TELEGRAM_CHANNEL_ID = process.env.TELEGRAM_CHANNEL_ID || '-1003771095032';
+
+// In-Memory Cache for Telegram File Paths (TTL: 50 minutes to stay fresh before Telegram's 1h expiry)
+const filePathCache = new Map();
+const CACHE_TTL_MS = 50 * 60 * 1000;
+
+/**
+ * Resolves Telegram file_path by file_id with caching
+ */
+function resolveTelegramFilePath(fileId) {
+  return new Promise((resolve, reject) => {
+    // Check cache
+    const cached = filePathCache.get(fileId);
+    if (cached && cached.expiresAt > Date.now()) {
+      if (cached.isTooLarge) {
+        const err = new Error('File exceeds 20MB Bot API limit. Please open directly in Telegram.');
+        err.code = 'FILE_TOO_LARGE';
+        err.fileId = fileId;
+        err.fileSize = cached.fileSize;
+        return reject(err);
+      }
+      return resolve(cached.filePath);
+    }
+
+    const apiUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getFile?file_id=${encodeURIComponent(fileId)}`;
+    https.get(apiUrl, (res) => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        try {
+          const json = JSON.parse(data);
+          if (json.ok && json.result && json.result.file_path) {
+            const filePath = json.result.file_path;
+            const fileSize = json.result.file_size;
+
+            // Enforce 20MB threshold (20,000,000 bytes)
+            if (fileSize && fileSize > 20000000) {
+              filePathCache.set(fileId, {
+                isTooLarge: true,
+                fileSize,
+                expiresAt: Date.now() + CACHE_TTL_MS
+              });
+              const err = new Error('File exceeds 20MB Bot API limit. Please open directly in Telegram.');
+              err.code = 'FILE_TOO_LARGE';
+              err.fileId = fileId;
+              err.fileSize = fileSize;
+              return reject(err);
+            }
+
+            filePathCache.set(fileId, {
+              filePath,
+              fileSize,
+              isTooLarge: false,
+              expiresAt: Date.now() + CACHE_TTL_MS
+            });
+            resolve(filePath);
+          } else {
+            const description = json.description || '';
+            // Check if Telegram reported file is too big (400 Bad Request: file is too big)
+            if (description.toLowerCase().includes('file is too big') || (json.error_code === 400 && description.includes('too big'))) {
+              filePathCache.set(fileId, {
+                isTooLarge: true,
+                expiresAt: Date.now() + CACHE_TTL_MS
+              });
+              const err = new Error('File exceeds 20MB Bot API limit. Please open directly in Telegram.');
+              err.code = 'FILE_TOO_LARGE';
+              err.fileId = fileId;
+              return reject(err);
+            }
+            reject(new Error(description || 'Telegram Bot API rejected getFile request'));
+          }
+        } catch (e) {
+          reject(new Error(`Failed to parse Telegram API response: ${e.message}`));
+        }
+      });
+    }).on('error', (err) => {
+      reject(new Error(`Telegram API connection error: ${err.message}`));
+    });
+  });
+}
+
+/**
+ * Streams binary PDF from Telegram CDN to client with CORS, Range support, and inline disposition
+ */
+function streamTelegramFile(filePath, clientReq, clientRes) {
+  const fileUrl = `https://api.telegram.org/file/bot${TELEGRAM_BOT_TOKEN}/${filePath}`;
+  
+  const headers = {};
+  if (clientReq.headers.range) {
+    headers['range'] = clientReq.headers.range;
+  }
+
+  const tgReq = https.get(fileUrl, { headers }, (tgRes) => {
+    // Handle HTTP Redirects if any
+    if (tgRes.statusCode >= 300 && tgRes.statusCode < 400 && tgRes.headers.location) {
+      https.get(tgRes.headers.location, { headers }, (redirectRes) => {
+        pipeTelegramResponse(redirectRes, clientRes);
+      }).on('error', (err) => {
+        if (!clientRes.headersSent) {
+          clientRes.writeHead(502, { 'Content-Type': 'application/json' });
+          clientRes.end(JSON.stringify({ error: 'Failed to stream from redirect', details: err.message }));
+        }
+      });
+      return;
+    }
+
+    pipeTelegramResponse(tgRes, clientRes);
+  });
+
+  tgReq.on('error', (err) => {
+    if (!clientRes.headersSent) {
+      clientRes.writeHead(502, { 'Content-Type': 'application/json' });
+      clientRes.end(JSON.stringify({ error: 'Failed to connect to Telegram CDN', details: err.message }));
+    }
+  });
+
+  clientReq.on('close', () => {
+    tgReq.destroy();
+  });
+}
+
+function pipeTelegramResponse(tgRes, clientRes) {
+  const responseHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, OPTIONS',
+    'Access-Control-Allow-Headers': 'Origin, Range, Content-Type, Accept',
+    'Access-Control-Expose-Headers': 'Content-Length, Content-Range, Accept-Ranges',
+    'Content-Type': 'application/pdf',
+    'Content-Disposition': 'inline; filename="study-document.pdf"',
+    'Accept-Ranges': 'bytes',
+    'Cache-Control': 'public, max-age=3600'
+  };
+
+  if (tgRes.headers['content-range']) {
+    responseHeaders['Content-Range'] = tgRes.headers['content-range'];
+  }
+  if (tgRes.headers['content-length']) {
+    responseHeaders['Content-Length'] = tgRes.headers['content-length'];
+  }
+
+  clientRes.writeHead(tgRes.statusCode, responseHeaders);
+  tgRes.pipe(clientRes);
+}
+
+// Helper to flatten nested folder catalog into an array of file records
+function flattenCatalog(obj, currentPath = '') {
+  let files = [];
+  if (!obj || typeof obj !== 'object') return files;
+
+  for (const key of Object.keys(obj)) {
+    if (key === 'files' && Array.isArray(obj[key])) {
+      const cleanFolder = currentPath.replace(/^ICSE PoDha STUDY MATERIALS\s*[\/\\]?/, '').trim() || 'General';
+      for (const item of obj[key]) {
+        if (!item || !item.fileId) continue;
+        
+        let subject = 'General';
+        const folderLower = cleanFolder.toLowerCase();
+        if (folderLower.includes('physics') || folderLower.includes('phy')) subject = 'Physics';
+        else if (folderLower.includes('chemistry') || folderLower.includes('chem')) subject = 'Chemistry';
+        else if (folderLower.includes('biology') || folderLower.includes('bio')) subject = 'Biology';
+        else if (folderLower.includes('math')) subject = 'Mathematics';
+        else if (folderLower.includes('comp') || folderLower.includes('java')) subject = 'Computer Applications';
+        else if (folderLower.includes('geo')) subject = 'Geography';
+        else if (folderLower.includes('history') || folderLower.includes('civics')) subject = 'History & Civics';
+        else if (folderLower.includes('english') || folderLower.includes('ep1') || folderLower.includes('ep2')) subject = 'English';
+        else if (folderLower.includes('robotics') || folderLower.includes('rai')) subject = 'Robotics & AI';
+        else if (folderLower.includes('top school') || folderLower.includes('prelim')) subject = 'Top Schools Prelims';
+        else if (folderLower.includes('all books') || folderLower.includes('arihant') || folderLower.includes('oswaal') || folderLower.includes('educart')) subject = 'All Books';
+
+        files.push({
+          id: item.fileId,
+          fileId: item.fileId,
+          name: item.title || 'Untitled Document',
+          folder: cleanFolder,
+          subject: subject,
+          description: `${item.title || 'Document'} in ${cleanFolder}`,
+          date: item.date || '2026-11',
+          isLargeFile: item.isLargeFile || false,
+          fallbackUrl: item.fallbackUrl || null,
+          fileSize: item.fileSize || item.size || null
+        });
+      }
+    } else if (typeof obj[key] === 'object' && obj[key] !== null) {
+      const nextPath = currentPath ? `${currentPath} / ${key}` : key;
+      files = files.concat(flattenCatalog(obj[key], nextPath));
+    }
+  }
+  return files;
+}
+
+// Read current catalog from disk
+function readCatalog() {
+  try {
+    if (!fs.existsSync(CATALOG_PATH)) return {};
+    const raw = fs.readFileSync(CATALOG_PATH, 'utf8');
+    return JSON.parse(raw);
+  } catch (err) {
+    console.error('Error reading catalog.json:', err.message);
+    return {};
+  }
+}
+
+// Helper to look up a specific file record in the catalog hierarchy by fileId
+function findInCatalog(fileId) {
+  const catalog = readCatalog();
+  function search(obj) {
+    if (!obj || typeof obj !== 'object') return null;
+    if (Array.isArray(obj.files)) {
+      for (const item of obj.files) {
+        if (item && item.fileId === fileId) {
+          return item;
+        }
+      }
+    }
+    for (const key of Object.keys(obj)) {
+      if (key !== 'files') {
+        const found = search(obj[key]);
+        if (found) return found;
+      }
+    }
+    return null;
+  }
+  return search(catalog);
+}
+
+// Append or update a file in the catalog
+function insertFileIntoCatalog(fileRecord) {
+  const catalog = readCatalog();
+  const folderPath = fileRecord.folder || 'General';
+  const parts = folderPath.split(/[\/\\]/).map(p => p.trim()).filter(Boolean);
+
+  let curr = catalog;
+  for (const part of parts) {
+    if (!curr[part] || typeof curr[part] !== 'object') {
+      curr[part] = {};
+    }
+    curr = curr[part];
+  }
+
+  if (!Array.isArray(curr.files)) {
+    curr.files = [];
+  }
+
+  const fileData = {
+    title: fileRecord.title || fileRecord.name,
+    fileId: fileRecord.fileId
+  };
+  if (fileRecord.isLargeFile) fileData.isLargeFile = fileRecord.isLargeFile;
+  if (fileRecord.fallbackUrl) fileData.fallbackUrl = fileRecord.fallbackUrl;
+  if (fileRecord.fileSize) fileData.fileSize = fileRecord.fileSize;
+
+  const existingIdx = curr.files.findIndex(f => f.fileId === fileRecord.fileId);
+  if (existingIdx >= 0) {
+    curr.files[existingIdx] = Object.assign(curr.files[existingIdx], fileData);
+  } else {
+    curr.files.push(fileData);
+  }
+
+  fs.writeFileSync(CATALOG_PATH, JSON.stringify(catalog, null, 2), 'utf8');
+  return true;
+}
+
+// MIME types for static assets
+const MIME_TYPES = {
+  '.html': 'text/html; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.js': 'application/javascript; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.svg': 'image/svg+xml',
+  '.ico': 'image/x-icon'
+};
+
+const server = http.createServer((req, res) => {
+  const reqUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+  const pathname = reqUrl.pathname;
+
+  // Global CORS Headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Origin, Range, Content-Type, Accept');
+  res.setHeader('Access-Control-Expose-Headers', 'Content-Length, Content-Range, Accept-Ranges');
+
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204);
+    res.end();
+    return;
+  }
+
+  // --- API: GET /api/stream/:fileId (Live Telegram PDF Proxy) ---
+  if (pathname.startsWith('/api/stream') && req.method === 'GET') {
+    let fileId = reqUrl.searchParams.get('fileId');
+    if (!fileId && pathname.startsWith('/api/stream/')) {
+      fileId = decodeURIComponent(pathname.replace('/api/stream/', '').trim());
+    }
+
+    if (!fileId) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Missing fileId parameter' }));
+      return;
+    }
+
+    // Direct redirect if catalog item has an Internet Archive fallback mirror URL
+    const catalogItemStream = findInCatalog(fileId);
+    if (catalogItemStream && catalogItemStream.isLargeFile && catalogItemStream.fallbackUrl) {
+      res.writeHead(302, {
+        'Location': catalogItemStream.fallbackUrl,
+        'Access-Control-Allow-Origin': '*'
+      });
+      res.end();
+      return;
+    }
+
+    resolveTelegramFilePath(fileId)
+      .then(filePath => {
+        streamTelegramFile(filePath, req, res);
+      })
+      .catch(err => {
+        console.error(`Streaming error for fileId [${fileId}]:`, err.message);
+        if (!res.headersSent) {
+          // Detect FILE_TOO_LARGE and return HTTP 413 with actionable JSON
+          if (err.code === 'FILE_TOO_LARGE') {
+            res.writeHead(413, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({
+              error: 'FILE_TOO_LARGE',
+              message: 'File exceeds 20MB Telegram Bot API streaming limit. Open directly in Telegram for instant access (supports up to 2 GB).',
+              fileId: fileId,
+              fileSize: err.fileSize || null,
+              telegramLink: 'https://t.me/c/3771095032'
+            }));
+          } else {
+            res.writeHead(502, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ 
+              error: 'Failed to resolve file from Telegram Bot API',
+              details: err.message,
+              fileId: fileId
+            }));
+          }
+        }
+      });
+    return;
+  }
+
+  // --- API: GET /api/resolve/:fileId (Metadata & Path Resolver) ---
+  if (pathname.startsWith('/api/resolve') && req.method === 'GET') {
+    let fileId = reqUrl.searchParams.get('fileId');
+    if (!fileId && pathname.startsWith('/api/resolve/')) {
+      fileId = decodeURIComponent(pathname.replace('/api/resolve/', '').trim());
+    }
+
+    if (!fileId) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Missing fileId parameter' }));
+      return;
+    }
+
+    const catalogItem = findInCatalog(fileId);
+    if (catalogItem && catalogItem.isLargeFile && catalogItem.fallbackUrl) {
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({
+        ok: true,
+        isLargeFile: true,
+        streamUrl: catalogItem.fallbackUrl // Direct 24/7 Internet Archive public link
+      }));
+      return;
+    }
+
+    resolveTelegramFilePath(fileId)
+      .then(filePath => {
+        const cached = filePathCache.get(fileId);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          ok: true,
+          fileId,
+          filePath,
+          fileSize: cached ? cached.fileSize : null,
+          streamUrl: `/api/stream/${encodeURIComponent(fileId)}`
+        }));
+      })
+      .catch(err => {
+        if (err.code === 'FILE_TOO_LARGE') {
+          res.writeHead(413, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({
+            ok: false,
+            error: 'FILE_TOO_LARGE',
+            message: 'File exceeds 20MB Bot API limit. Open directly in Telegram.',
+            fileId,
+            fileSize: err.fileSize || null,
+            telegramLink: 'https://t.me/c/3771095032'
+          }));
+        } else {
+          res.writeHead(502, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ ok: false, error: err.message, fileId }));
+        }
+      });
+    return;
+  }
+
+  // --- API: GET /api/files ---
+  if (pathname === '/api/files' && req.method === 'GET') {
+    const catalog = readCatalog();
+    const files = flattenCatalog(catalog);
+    
+    // Server-side search filter support
+    const query = (reqUrl.searchParams.get('q') || '').toLowerCase().trim();
+    let result = files;
+    if (query) {
+      const keywords = query.split(/\s+/);
+      result = files.filter(f => {
+        const fn = (f.name || '').toLowerCase();
+        const fo = (f.folder || '').toLowerCase();
+        const fd = (f.description || '').toLowerCase();
+        return keywords.every(kw => fn.includes(kw) || fo.includes(kw) || fd.includes(kw));
+      });
+    }
+
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+    res.end(JSON.stringify(result));
+    return;
+  }
+
+  // --- API: GET /api/catalog ---
+  if (pathname === '/api/catalog' && req.method === 'GET') {
+    const catalog = readCatalog();
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+    res.end(JSON.stringify(catalog));
+    return;
+  }
+
+  // --- API: GET /api/stats ---
+  if (pathname === '/api/stats' && req.method === 'GET') {
+    const catalog = readCatalog();
+    const files = flattenCatalog(catalog);
+    const subjects = new Set(files.map(f => f.subject));
+    const folders = new Set(files.map(f => f.folder));
+
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+    res.end(JSON.stringify({
+      totalFiles: files.length,
+      totalFolders: folders.size,
+      totalSubjects: subjects.size,
+      subjects: Array.from(subjects)
+    }));
+    return;
+  }
+
+  // --- API: POST /api/files (Ingest from Telegram Bot) ---
+  if (pathname === '/api/files' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', () => {
+      try {
+        const data = JSON.parse(body);
+        if (!data.fileId || (!data.title && !data.name)) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Missing required fields: fileId and title/name' }));
+          return;
+        }
+
+        insertFileIntoCatalog(data);
+        res.writeHead(201, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true, message: 'File cataloged successfully' }));
+      } catch (e) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Invalid JSON payload' }));
+      }
+    });
+    return;
+  }
+
+  // --- STATIC FILE SERVING ---
+  let filePath = path.join(__dirname, pathname === '/' ? 'index.html' : pathname);
+  
+  if (!filePath.startsWith(__dirname)) {
+    res.writeHead(403);
+    res.end('Forbidden');
+    return;
+  }
+
+  fs.stat(filePath, (err, stats) => {
+    if (err || !stats.isFile()) {
+      res.writeHead(404, { 'Content-Type': 'text/plain' });
+      res.end('404 Not Found');
+      return;
+    }
+
+    const ext = path.extname(filePath).toLowerCase();
+    const contentType = MIME_TYPES[ext] || 'application/octet-stream';
+
+    res.writeHead(200, { 'Content-Type': contentType });
+    fs.createReadStream(filePath).pipe(res);
+  });
+});
+
+if (require.main === module) {
+  server.listen(PORT, () => {
+    console.log(`\n======================================================`);
+    console.log(`🚀 ICSE PoDha Live Portal Server running at: http://localhost:${PORT}`);
+    console.log(`📡 Live API Files      : http://localhost:${PORT}/api/files`);
+    console.log(`⚡ Secure Stream Proxy : http://localhost:${PORT}/api/stream/:fileId`);
+    console.log(`📊 Catalog Statistics  : http://localhost:${PORT}/api/stats`);
+    console.log(`======================================================\n`);
+  });
+}
+
+module.exports = { server, flattenCatalog, readCatalog, findInCatalog, resolveTelegramFilePath };
+```[cite: 7]
+
+---
+
+### `sync_library.py`
+```python
+import os
+import json
+import requests
+
+# --- CONFIGURATION ---
+BOT_TOKEN = "9084126620:AAFJDD7pBQTvCzJMJ2zUAKZO596Qn-ce0lE"  # Replace with your actual Telegram bot token
+CHAT_ID = "-1003771095032"                    # Your private channel ID
+
+# Path to your local study library folder root
+LOCAL_LIBRARY_PATH = "./study_library"  
+
+def upload_pdf_to_telegram(file_path, caption):
+    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendDocument"
+    try:
+        with open(file_path, "rb") as f:
+            files = {"document": f}
+            data = {"chat_id": CHAT_ID, "caption": caption}
+            response = requests.post(url, data=data, files=files, timeout=60)
+        
+        result = response.json()
+        if result.get("ok"):
+            return result["result"]["document"]["file_id"]
+        else:
+            print(f"Failed to upload {file_path}: {result}")
+            return None
+    except Exception as e:
+        print(f"Exception uploading {file_path}: {e}")
+        return None
+
+def build_catalog_and_upload():
+    catalog = {}
+    
+    print("🚀 Scanning local folder structure and uploading PDFs to Telegram...")
+    for root, dirs, files in os.walk(LOCAL_LIBRARY_PATH):
+        rel_path = os.path.relpath(root, LOCAL_LIBRARY_PATH)
+        if rel_path == ".":
+            current_dict = catalog
+        else:
+            parts = rel_path.split(os.sep)
+            curr = catalog
+            for part in parts:
+                curr = curr.setdefault(part, {})
+            current_dict = curr
+
+        pdf_files = [f for f in files if f.lower().endswith(".pdf")]
+        if pdf_files:
+            current_dict["files"] = []
+            for file in pdf_files:
+                full_path = os.path.join(root, file)
+                print(f"Uploading: {file} from {rel_path}...")
+                
+                file_id = upload_pdf_to_telegram(full_path, caption=file)
+                
+                if file_id:
+                    current_dict["files"].append({
+                        "title": os.path.splitext(file)[0].replace("_", " ").title(),
+                        "fileId": file_id
+                    })
+
+    with open("catalog.json", "w", encoding="utf-8") as json_file:
+        json.dump(catalog, json_file, indent=4, ensure_ascii=False)
+    
+    print("\n✅ Success! All files uploaded, mapped, and saved to catalog.json.")
+
+if __name__ == "__main__":
+    build_catalog_and_upload()
+```[cite: 9]
+
+---
+
+### `auto_sync_drive.py`
+```python
+import os
+import json
+import requests
+import gdown
+
+# --- CONFIGURATION ---
+BOT_TOKEN = "9084126620:AAFJDD7pBQTvCzJMJ2zUAKZO596Qn-ce0lE"
+CHAT_ID = "-1003771095032"
+DRIVE_FOLDER_URL = "https://drive.google.com/drive/folders/1BKzQ6ZxykDJIdNh0sB4I02w0e6SlYRql?usp=drive_link"
+
+TEMP_DIR = "./temp_drive_pdfs"
+CATALOG_FILE = "catalog.json"
+
+def upload_pdf_to_telegram(file_path, caption):
+    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendDocument"
+    try:
+        with open(file_path, "rb") as f:
+            files = {"document": f}
+            data = {"chat_id": CHAT_ID, "caption": caption}
+            response = requests.post(url, data=data, files=files, timeout=60)
+        
+        result = response.json()
+        if result.get("ok"):
+            return result["result"]["document"]["file_id"]
+        else:
+            print(f"   ❌ Telegram Error: {result}")
+            return None
+    except Exception as e:
+        print(f"   ❌ Exception: {e}")
+        return None
+
+def run_diagnostic():
+    print("==================================================")
+    print("🔍 RUNNING DIAGNOSTIC FILE WALK")
+    print("==================================================")
+    
+    if not os.path.exists(TEMP_DIR):
+        print(f"❌ Directory {TEMP_DIR} does not exist!")
+        return
+
+    total_files_found = 0
+    pdf_count = 0
+    catalog = {}
+
+    for root, dirs, files in os.walk(TEMP_DIR):
+        print(f"\n📁 Scanning Directory: {root}")
+        print(f"   Subdirectories: {dirs}")
+        print(f"   Files found here: {files}")
+        
+        for file in files:
+            total_files_found += 1
+            if file.lower().endswith(".pdf"):
+                pdf_count += 1
+                full_path = os.path.join(root, file)
+                print(f"   ✅ FOUND PDF: {file} at {full_path}")
+                
+                # Determine relative path structure
+                rel_path = os.path.relpath(root, TEMP_DIR)
+                if rel_path == ".":
+                    current_dict = catalog
+                else:
+                    parts = rel_path.split(os.sep)
+                    curr = catalog
+                    for part in parts:
+                        curr = curr.setdefault(part, {})
+                    current_dict = curr
+                
+                current_dict.setdefault("files", [])
+                
+                # Upload and map
+                clean_title = os.path.splitext(file)[0].replace("_", " ").title()
+                print(f"      📤 Uploading to Telegram: {clean_title}...")
+                file_id = upload_pdf_to_telegram(full_path, caption=clean_title)
+                
+                if file_id:
+                    current_dict["files"].append({
+                        "title": clean_title,
+                        "fileId": file_id
+                    })
+
+    print(f"\n📊 Summary: Total files on disk: {total_files_found} | Total PDFs matched: {pdf_count}")
+
+    # Save catalog
+    with open(CATALOG_FILE, "w", encoding="utf-8") as json_file:
+        json.dump(catalog, json_file, indent=4, ensure_ascii=False)
+    print(f"💾 Catalog saved to {CATALOG_FILE}.")
+
+if __name__ == "__main__":
+    run_diagnostic()
+```[cite: 12]
+
+---
+
+### `auto_sync_archive.py`
+```python
+import os
+import json
+import internetarchive as ia
+
+CATALOG_PATH = "catalog.json"
+SIZE_LIMIT = 20 * 1024 * 1024  # 20 MB in bytes
+
+def run_archive_automation():
+    if not os.path.exists(CATALOG_PATH):
+        print("❌ Error: catalog.json not found!")
+        return
+
+    with open(CATALOG_PATH, "r", encoding="utf-8") as f:
+        catalog = json.load(f)
+
+    updated_count = 0
+
+    # Recursive function to handle nested folders or flat lists in catalog.json
+    def process_items(items):
+        nonlocal updated_count
+        if isinstance(items, list):
+            for item in items:
+                process_items(item)
+        elif isinstance(items, dict):
+            # If it's a folder containing children, recurse into them
+            if "children" in items:
+                process_items(items["children"])
+            if "items" in items:
+                process_items(items["items"])
+
+            # Check if this dictionary represents a file entry
+            file_path = items.get("localPath") or items.get("path")
+            file_size = items.get("size", 0)
+
+            if file_size > SIZE_LIMIT and not items.get("fallbackUrl"):
+                if file_path and os.path.exists(file_path):
+                    print(f"📦 Found large file (>20MB): {items.get('title')} ({file_size / (1024*1024):.2f} MB)")
+                    
+                    safe_id = "".join(c if c.isalnum() else "_" for c in items.get('title', 'icse_file')).lower()[:50]
+                    identifier = f"icse_podha_{safe_id}_{abs(hash(file_path))}"
+
+                    print(f"🚀 Uploading to Internet Archive as item: {identifier}...")
+                    
+                    metadata = {
+                        'mediatype': 'texts',
+                        'title': items.get('title', 'ICSE Study Material'),
+                        'collection': 'opensource',
+                        'description': 'Automatically uploaded for ICSE PoDha Study Portal'
+                    }
+
+                    try:
+                        r = ia.upload(identifier, files=[file_path], metadata=metadata)
+                        public_url = f"https://archive.org/download/{identifier}/{os.path.basename(file_path)}"
+                        items["isLargeFile"] = True
+                        items["fallbackUrl"] = public_url
+                        updated_count += 1
+                        print(f"✅ Successfully mirrored! Public URL: {public_url}")
+                    except Exception as e:
+                        print(f"❌ Failed to upload {file_path}: {e}")
+
+    process_items(catalog)
+
+    if updated_count > 0:
+        with open(CATALOG_PATH, "w", encoding="utf-8") as f:
+            json.dump(catalog, f, indent=2)
+        print(f"🎉 Successfully updated catalog.json with {updated_count} large files!")
+    else:
+        print("✨ No new large files needed uploading or files lacked a valid 'localPath'.")
+
+if __name__ == "__main__":
+    run_archive_automation()
+```[cite: 11]
