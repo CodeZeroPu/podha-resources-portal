@@ -69,18 +69,3 @@ def run_archive_automation():
 
 if __name__ == "__main__":
     run_archive_automation()
-```[cite: 11]
-
----
-
-### 🎉 All Scripts Updated Successfully!
-You now have the full set of configured files for your **`podha-resources-portal`** project:
-1. `package.json`[cite: 4]
-2. `server.js`[cite: 7]
-3. `sync_library.py`[cite: 9]
-4. `auto_sync_drive.py`[cite: 12]
-5. `auto_sync_archive.py`[cite: 11]
-
-You can start your live server using:
-```bash
-npm start

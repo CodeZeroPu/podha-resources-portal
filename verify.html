@@ -231,13 +231,25 @@
   <!-- Interactive JavaScript -->
   <script>
     // ========================================================
-    // AD SHORTENER CONFIGURATION
+    // SHRINKME API & PRODUCTION DOMAIN CONFIGURATION
     // ========================================================
-    // ShrinkMe / GPLinks ad shortener URL
-    // Destination target configured on the shortener dashboard:
-    //   http://localhost:3000/verify.html?verified=true  (dev)
-    //   https://yourdomain.com/verify.html?verified=true (prod)
-    const AD_SHORTENER_URL = 'https://shrinkme.click/8LG4';
+    const PRODUCTION_BASE_URL = 'https://podha-resources-portal.onrender.com';
+    const VERIFICATION_RETURN_URL = 'https://podha-resources-portal.onrender.com/verify.html?verified=true';
+    const SHRINKME_API_TOKEN = 'c8f30ce164d6413957b60caf4e84e7844d260d3c';
+
+    // Exact ShrinkMe API link generator URL:
+    const SHRINKME_API_GENERATOR_URL = "https://shrinkme.io/api?api=" + SHRINKME_API_TOKEN + "&url=" + encodeURIComponent(VERIFICATION_RETURN_URL);
+
+    // Live active short link generated via token targeting the Render return URL:
+    const AD_SHORTENER_URL = 'https://shrinkme.click/FuvOTfD';
+
+    /**
+     * ShrinkMe API Link Generator Function:
+     * Formats API short-links strictly targeting the live production Render domain.
+     */
+    function generateAdShortLink(apiEndpoint = 'https://shrinkme.io/api', apiToken = SHRINKME_API_TOKEN) {
+      return "https://shrinkme.io/api?api=" + apiToken + "&url=" + encodeURIComponent(VERIFICATION_RETURN_URL);
+    }
 
     // ========================================================
     // INCOMING VERIFICATION HANDLER (?verified=true callback)

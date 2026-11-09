@@ -87,8 +87,3 @@ def run_diagnostic():
 
 if __name__ == "__main__":
     run_diagnostic()
-```[cite: 12]
-
----
-
-Type **"next"** when you are ready for the final synchronization script (`auto_sync_archive.py`)[cite: 11].

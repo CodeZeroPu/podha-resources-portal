@@ -64,8 +64,3 @@ def build_catalog_and_upload():
 
 if __name__ == "__main__":
     build_catalog_and_upload()
-```[cite: 9]
-
----
-
-Type **"next"** when you are ready for the remaining helper synchronization scripts (`auto_sync_drive.py` and `auto_sync_archive.py`)[cite: 11, 12].

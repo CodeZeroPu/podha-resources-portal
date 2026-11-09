@@ -18,7 +18,13 @@ const path = require('path');
 const url = require('url');
 
 const PORT = process.env.PORT || 3000;
+const BASE_URL = process.env.BASE_URL || 'https://podha-resources-portal.onrender.com';
 const CATALOG_PATH = path.join(__dirname, 'catalog.json');
+
+// ShrinkMe API Token & Verification Monetization Configuration
+const SHRINKME_API_TOKEN = process.env.SHRINKME_API_TOKEN || 'c8f30ce164d6413957b60caf4e84e7844d260d3c';
+const VERIFICATION_RETURN_URL = `${BASE_URL}/verify.html?verified=true`;
+const SHRINKME_API_GENERATOR_URL = `https://shrinkme.io/api?api=${SHRINKME_API_TOKEN}&url=${encodeURIComponent(VERIFICATION_RETURN_URL)}`;
 
 // Telegram Bot Configuration (Kept secure on backend, never exposed to client)
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '9084126620:AAFJDD7pBQTvCzJMJ2zUAKZO596Qn-ce0lE';
@@ -298,7 +304,7 @@ const MIME_TYPES = {
 };
 
 const server = http.createServer((req, res) => {
-  const reqUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+  const reqUrl = new URL(req.url, req.headers.host ? `http://${req.headers.host}` : BASE_URL);
   const pathname = reqUrl.pathname;
 
   // Global CORS Headers
@@ -470,6 +476,19 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // --- API: GET /api/shorten-url (ShrinkMe API Link Generator & Info) ---
+  if (pathname === '/api/shorten-url' && req.method === 'GET') {
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+    res.end(JSON.stringify({
+      success: true,
+      productionBaseUrl: BASE_URL,
+      verificationReturnUrl: VERIFICATION_RETURN_URL,
+      apiGeneratorUrl: SHRINKME_API_GENERATOR_URL,
+      shortenedUrl: 'https://shrinkme.click/FuvOTfD'
+    }));
+    return;
+  }
+
   // --- API: POST /api/files (Ingest from Telegram Bot) ---
   if (pathname === '/api/files' && req.method === 'POST') {
     let body = '';
@@ -521,17 +540,12 @@ const server = http.createServer((req, res) => {
 if (require.main === module) {
   server.listen(PORT, () => {
     console.log(`\n======================================================`);
-    console.log(`🚀 ICSE PoDha Live Portal Server running at: http://localhost:${PORT}`);
-    console.log(`📡 Live API Files      : http://localhost:${PORT}/api/files`);
-    console.log(`⚡ Secure Stream Proxy : http://localhost:${PORT}/api/stream/:fileId`);
-    console.log(`📊 Catalog Statistics  : http://localhost:${PORT}/api/stats`);
+    console.log(`🚀 ICSE PoDha Live Portal Server running at: ${BASE_URL} (port ${PORT})`);
+    console.log(`📡 Live API Files      : ${BASE_URL}/api/files`);
+    console.log(`⚡ Secure Stream Proxy : ${BASE_URL}/api/stream/:fileId`);
+    console.log(`📊 Catalog Statistics  : ${BASE_URL}/api/stats`);
     console.log(`======================================================\n`);
   });
 }
 
-module.exports = { server, flattenCatalog, readCatalog, findInCatalog, resolveTelegramFilePath };
-```[cite: 7]
-
----
-
-Type **"next"** when you are ready for the code for the remaining synchronization scripts (`sync_library.py`, `auto_sync_drive.py`, and `auto_sync_archive.py`)[cite: 9, 11, 12].
+module.exports = { server, flattenCatalog, readCatalog, findInCatalog, resolveTelegramFilePath, BASE_URL, SHRINKME_API_TOKEN, VERIFICATION_RETURN_URL, SHRINKME_API_GENERATOR_URL };

@@ -661,12 +661,18 @@
        ========================================== -->
   <script>
     // ========================================================
-    // 1. CONFIGURATION
+    // 1. CONFIGURATION & PRODUCTION ENDPOINTS
     // ========================================================
+    const PRODUCTION_ORIGIN = "https://podha-resources-portal.onrender.com";
+    const API_BASE = (window.location.origin && window.location.origin.startsWith('http') && !window.location.origin.includes('localhost') && !window.location.origin.includes('127.0.0.1'))
+      ? window.location.origin
+      : PRODUCTION_ORIGIN;
+
     const TELEGRAM_CONFIG = {
       CHANNEL_ID: "-1003771095032",
-      STREAM_PROXY_ENDPOINT: "/api/stream",
-      RESOLVE_ENDPOINT: "/api/resolve"
+      PRODUCTION_URL: PRODUCTION_ORIGIN,
+      STREAM_PROXY_ENDPOINT: `${API_BASE}/api/stream`,
+      RESOLVE_ENDPOINT: `${API_BASE}/api/resolve`
     };
 
     // ========================================================
@@ -831,7 +837,7 @@
 
         // Step 1: Attempt to fetch from backend pipeline endpoint
         try {
-          const res = await fetch('/api/files');
+          const res = await fetch(`${API_BASE}/api/files`);
           if (res.ok) {
             const data = await res.json();
             if (Array.isArray(data) && data.length > 0) {
@@ -1177,8 +1183,8 @@
      * 2. Supports direct client fallback if running in custom environments
      */
     async function resolveTelegramFileStream(fileId) {
-      // Primary: Route through secure backend proxy endpoint
-      const proxyUrl = `/api/stream/${encodeURIComponent(fileId)}`;
+      // Primary: Route through production Render streaming proxy endpoint
+      const proxyUrl = `${API_BASE}/api/stream/${encodeURIComponent(fileId)}`;
       
       // If served via http/https, verify backend proxy connection
       if (window.location.protocol.startsWith('http')) {
@@ -1195,7 +1201,7 @@
 
       // If running on file:// protocol without backend server
       if (window.location.protocol === 'file:') {
-        throw new Error('Local file:// protocol detected. Backend streaming proxy required. Run `node server.js` or `npm start` at http://localhost:3000 to enable instant CORS-free streaming.');
+        return `${PRODUCTION_ORIGIN}/api/stream/${encodeURIComponent(fileId)}`;
       }
 
       return proxyUrl;
@@ -1289,7 +1295,7 @@
         let isLargeFile = false;
         let fileSizeBytes = null;
         try {
-          const resolveRes = await fetch(`/api/resolve/${encodeURIComponent(fileId)}`);
+          const resolveRes = await fetch(`${API_BASE}/api/resolve/${encodeURIComponent(fileId)}`);
           const data = await resolveRes.json().catch(() => ({}));
 
           if (data && data.isLargeFile) {
@@ -1377,7 +1383,7 @@
       
       let errorMsg = error && error.message ? error.message : 'Unable to stream file directly.';
       if (errorMsg.includes('Failed to fetch') || errorMsg.includes('NetworkError')) {
-        errorMsg = 'Backend stream server not reachable or network blocked. Please run `node server.js` or `npm start` at http://localhost:3000 to enable instant CORS-free streaming.';
+        errorMsg = 'Backend stream server not reachable or network blocked. Please connect via live production portal at https://podha-resources-portal.onrender.com to enable instant CORS-free streaming.';
         if (statusBadge) statusBadge.innerText = 'Server Proxy Offline';
       } else {
         if (statusBadge) statusBadge.innerText = 'Direct Access Mode';
